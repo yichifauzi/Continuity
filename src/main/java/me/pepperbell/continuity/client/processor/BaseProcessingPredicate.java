@@ -1,7 +1,6 @@
 package me.pepperbell.continuity.client.processor;
 
 import java.util.EnumSet;
-import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
@@ -15,7 +14,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.state.property.Properties;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Nameable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -23,14 +21,12 @@ import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.biome.Biome;
 
 public class BaseProcessingPredicate implements ProcessingPredicate {
-	protected Set<Identifier> matchTilesSet;
 	protected EnumSet<Direction> faces;
 	protected Predicate<Biome> biomePredicate;
 	protected IntPredicate heightPredicate;
 	protected Predicate<String> blockEntityNamePredicate;
 
-	public BaseProcessingPredicate(Set<Identifier> matchTilesSet, EnumSet<Direction> faces, Predicate<Biome> biomePredicate, IntPredicate heightPredicate, Predicate<String> blockEntityNamePredicate) {
-		this.matchTilesSet = matchTilesSet;
+	public BaseProcessingPredicate(EnumSet<Direction> faces, Predicate<Biome> biomePredicate, IntPredicate heightPredicate, Predicate<String> blockEntityNamePredicate) {
 		this.faces = faces;
 		this.biomePredicate = biomePredicate;
 		this.heightPredicate = heightPredicate;
@@ -39,11 +35,6 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 
 	@Override
 	public boolean shouldProcessQuad(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, ProcessingDataProvider dataProvider) {
-		if (matchTilesSet != null) {
-			if (!matchTilesSet.contains(sprite.getId())) {
-				return false;
-			}
-		}
 		if (heightPredicate != null) {
 			if (!heightPredicate.test(pos.getY())) {
 				return false;
@@ -79,7 +70,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	public static BaseProcessingPredicate fromProperties(BaseCTMProperties properties) {
-		return new BaseProcessingPredicate(properties.getMatchTilesSet(), properties.getFaces(), properties.getBiomePredicate(), properties.getHeightPredicate(), properties.getBlockEntityNamePredicate());
+		return new BaseProcessingPredicate(properties.getFaces(), properties.getBiomePredicate(), properties.getHeightPredicate(), properties.getBlockEntityNamePredicate());
 	}
 
 	public static class BiomeCache {

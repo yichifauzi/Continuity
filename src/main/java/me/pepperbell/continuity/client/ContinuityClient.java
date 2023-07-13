@@ -7,7 +7,9 @@ import me.pepperbell.continuity.api.client.CTMLoader;
 import me.pepperbell.continuity.api.client.CTMLoaderRegistry;
 import me.pepperbell.continuity.api.client.CTMProperties;
 import me.pepperbell.continuity.api.client.CTMPropertiesFactory;
+import me.pepperbell.continuity.api.client.CachingPredicatesFactory;
 import me.pepperbell.continuity.api.client.QuadProcessorFactory;
+import me.pepperbell.continuity.client.processor.BaseCachingPredicates;
 import me.pepperbell.continuity.client.processor.CompactCTMQuadProcessor;
 import me.pepperbell.continuity.client.processor.HorizontalQuadProcessor;
 import me.pepperbell.continuity.client.processor.HorizontalVerticalQuadProcessor;
@@ -35,7 +37,6 @@ import me.pepperbell.continuity.client.properties.overlay.RepeatOverlayCTMProper
 import me.pepperbell.continuity.client.properties.overlay.StandardConnectingOverlayCTMProperties;
 import me.pepperbell.continuity.client.properties.overlay.StandardOverlayCTMProperties;
 import me.pepperbell.continuity.client.resource.CustomBlockLayers;
-import me.pepperbell.continuity.client.resource.EmissiveIdProvider;
 import me.pepperbell.continuity.client.util.RenderUtil;
 import me.pepperbell.continuity.client.util.biome.BiomeHolderManager;
 import me.pepperbell.continuity.client.util.biome.BiomeRetriever;
@@ -44,6 +45,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class ContinuityClient implements ClientModInitializer {
@@ -56,14 +58,13 @@ public class ContinuityClient implements ClientModInitializer {
 		ProcessingDataKeyRegistryImpl.INSTANCE.init();
 		BiomeHolderManager.init();
 		BiomeRetriever.init();
-		EmissiveIdProvider.init();
 		ProcessingDataKeys.init();
 		RenderUtil.ReloadListener.init();
 		CustomBlockLayers.ReloadListener.init();
 
 		FabricLoader.getInstance().getModContainer(ID).ifPresent(container -> {
-			ResourceManagerHelper.registerBuiltinResourcePack(asId("default"), container, ResourcePackActivationType.NORMAL);
-			ResourceManagerHelper.registerBuiltinResourcePack(asId("glass_pane_culling_fix"), container, ResourcePackActivationType.NORMAL);
+			ResourceManagerHelper.registerBuiltinResourcePack(asId("default"), container, Text.translatable("resourcePack.continuity.default.name"), ResourcePackActivationType.NORMAL);
+			ResourceManagerHelper.registerBuiltinResourcePack(asId("glass_pane_culling_fix"), container, Text.translatable("resourcePack.continuity.glass_pane_culling_fix.name"), ResourcePackActivationType.NORMAL);
 		});
 
 		// Regular methods
@@ -95,7 +96,8 @@ public class ContinuityClient implements ClientModInitializer {
 		loader = createLoader(
 				CompactConnectingCTMProperties::new,
 				new TileAmountValidator.AtLeast<>(5),
-				new CompactCTMQuadProcessor.Factory()
+				new CompactCTMQuadProcessor.Factory(),
+				false
 		);
 		registry.registerLoader("ctm_compact", loader);
 
@@ -202,20 +204,47 @@ public class ContinuityClient implements ClientModInitializer {
 		registry.registerLoader("overlay_fixed", loader);
 	}
 
+	private static <T extends CTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, QuadProcessorFactory<T> processorFactory, CachingPredicatesFactory<T> predicatesFactory) {
+		return new CTMLoader<>() {
+			@Override
+			public CTMPropertiesFactory<T> getPropertiesFactory() {
+				return propertiesFactory;
+			}
+
+			@Override
+			public QuadProcessorFactory<T> getProcessorFactory() {
+				return processorFactory;
+			}
+
+			@Override
+			public CachingPredicatesFactory<T> getPredicatesFactory() {
+				return predicatesFactory;
+			}
+		};
+	}
+
+	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessorFactory<T> processorFactory, boolean isValidForMultipass) {
+		return createLoader(wrapWithOptifineOnlyCheck(TileAmountValidator.wrapFactory(BaseCTMProperties.wrapFactory(propertiesFactory), validator)), processorFactory, new BaseCachingPredicates.Factory<>(isValidForMultipass));
+	}
+
 	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessorFactory<T> processorFactory) {
-		return CTMLoader.of(wrapWithOptifineOnlyCheck(TileAmountValidator.wrapFactory(BaseCTMProperties.wrapFactory(propertiesFactory), validator)), processorFactory);
+		return createLoader(propertiesFactory, validator, processorFactory, true);
+	}
+
+	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, QuadProcessorFactory<T> processorFactory, boolean isValidForMultipass) {
+		return createLoader(wrapWithOptifineOnlyCheck(BaseCTMProperties.wrapFactory(propertiesFactory)), processorFactory, new BaseCachingPredicates.Factory<>(isValidForMultipass));
 	}
 
 	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, QuadProcessorFactory<T> processorFactory) {
-		return CTMLoader.of(wrapWithOptifineOnlyCheck(BaseCTMProperties.wrapFactory(propertiesFactory)), processorFactory);
+		return createLoader(propertiesFactory, processorFactory, true);
 	}
 
 	private static <T extends CTMProperties> CTMPropertiesFactory<T> wrapWithOptifineOnlyCheck(CTMPropertiesFactory<T> factory) {
-		return (properties, id, packName, packPriority, method) -> {
+		return (properties, id, pack, packPriority, resourceManager, method) -> {
 			if (PropertiesParsingHelper.parseOptifineOnly(properties, id)) {
 				return null;
 			}
-			return factory.createProperties(properties, id, packName, packPriority, method);
+			return factory.createProperties(properties, id, pack, packPriority, resourceManager, method);
 		};
 	}
 

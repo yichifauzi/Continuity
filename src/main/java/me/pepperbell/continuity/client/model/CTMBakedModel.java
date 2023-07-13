@@ -1,9 +1,7 @@
 package me.pepperbell.continuity.client.model;
 
-import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
-
-import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.api.client.QuadProcessor;
 import me.pepperbell.continuity.client.config.ContinuityConfig;
@@ -20,16 +18,14 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 
 public class CTMBakedModel extends ForwardingBakedModel {
-	public static final int MULTIPASS_LIMIT = 3;
+	public static final int PASSES = 4;
 
-	protected final List<QuadProcessor> processors;
-	@Nullable
-	protected final List<QuadProcessor> multipassProcessors;
+	protected final BlockState defaultState;
+	protected volatile Function<Sprite, QuadProcessors.Slice> defaultSliceFunc;
 
-	public CTMBakedModel(BakedModel wrapped, List<QuadProcessor> processors, @Nullable List<QuadProcessor> multipassProcessors) {
+	public CTMBakedModel(BakedModel wrapped, BlockState defaultState) {
 		this.wrapped = wrapped;
-		this.processors = processors;
-		this.multipassProcessors = multipassProcessors;
+		this.defaultState = defaultState;
 	}
 
 	@Override
@@ -51,7 +47,7 @@ public class CTMBakedModel extends ForwardingBakedModel {
 			return;
 		}
 
-		quadTransform.prepare(processors, multipassProcessors, blockView, state, pos, randomSupplier, ContinuityConfig.INSTANCE.useManualCulling.get());
+		quadTransform.prepare(blockView, state, pos, randomSupplier, ContinuityConfig.INSTANCE.useManualCulling.get(), getSliceFunc(state));
 
 		context.pushTransform(quadTransform);
 		super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
@@ -66,17 +62,33 @@ public class CTMBakedModel extends ForwardingBakedModel {
 		return false;
 	}
 
+	protected Function<Sprite, QuadProcessors.Slice> getSliceFunc(BlockState state) {
+		if (state == defaultState) {
+			Function<Sprite, QuadProcessors.Slice> sliceFunc = defaultSliceFunc;
+			if (sliceFunc == null) {
+				synchronized (this) {
+					sliceFunc = defaultSliceFunc;
+					if (sliceFunc == null) {
+						defaultSliceFunc = QuadProcessors.getCache(state);
+						sliceFunc = defaultSliceFunc;
+					}
+				}
+			}
+			return sliceFunc;
+		}
+		return QuadProcessors.getCache(state);
+	}
+
 	protected static class CTMQuadTransform implements RenderContext.QuadTransform {
 		protected final ProcessingContextImpl processingContext = new ProcessingContextImpl();
 		protected final CullingCache cullingCache = new CullingCache();
 
-		protected List<QuadProcessor> processors;
-		protected List<QuadProcessor> multipassProcessors;
 		protected BlockRenderView blockView;
 		protected BlockState state;
 		protected BlockPos pos;
 		protected Supplier<Random> randomSupplier;
 		protected boolean useManualCulling;
+		protected Function<Sprite, QuadProcessors.Slice> sliceFunc;
 
 		protected boolean active;
 
@@ -86,28 +98,22 @@ public class CTMBakedModel extends ForwardingBakedModel {
 				return false;
 			}
 
-			Boolean result = transformOnce(quad, processors, 0);
-			if (result != null) {
-				return result;
-			}
-			if (multipassProcessors != null) {
-				for (int pass = 0; pass < MULTIPASS_LIMIT; pass++) {
-					result = transformOnce(quad, multipassProcessors, pass + 1);
-					if (result != null) {
-						return result;
-					}
+			for (int pass = 0; pass < PASSES; pass++) {
+				Boolean result = transformOnce(quad, pass);
+				if (result != null) {
+					return result;
 				}
 			}
 
 			return true;
 		}
 
-		protected Boolean transformOnce(MutableQuadView quad, List<QuadProcessor> processors, int pass) {
+		protected Boolean transformOnce(MutableQuadView quad, int pass) {
 			Sprite sprite = RenderUtil.getSpriteFinder().find(quad, 0);
-			int amount = processors.size();
-			for (int i = 0; i < amount; i++) {
-				QuadProcessor processor = processors.get(i);
-				QuadProcessor.ProcessingResult result = processor.processQuad(quad, sprite, blockView, state, pos, randomSupplier, pass, i, processingContext);
+			QuadProcessors.Slice slice = sliceFunc.apply(sprite);
+			QuadProcessor[] processors = pass == 0 ? slice.processors() : slice.multipassProcessors();
+			for (QuadProcessor processor : processors) {
+				QuadProcessor.ProcessingResult result = processor.processQuad(quad, sprite, blockView, state, pos, randomSupplier, pass, processingContext);
 				if (result == QuadProcessor.ProcessingResult.CONTINUE) {
 					continue;
 				}
@@ -128,14 +134,13 @@ public class CTMBakedModel extends ForwardingBakedModel {
 			return active;
 		}
 
-		public void prepare(List<QuadProcessor> processors, List<QuadProcessor> multipassProcessors, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, boolean useManualCulling) {
-			this.processors = processors;
-			this.multipassProcessors = multipassProcessors;
+		public void prepare(BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, boolean useManualCulling, Function<Sprite, QuadProcessors.Slice> sliceFunc) {
 			this.blockView = blockView;
 			this.state = state;
 			this.pos = pos;
 			this.randomSupplier = randomSupplier;
 			this.useManualCulling = useManualCulling;
+			this.sliceFunc = sliceFunc;
 
 			active = true;
 
@@ -144,13 +149,12 @@ public class CTMBakedModel extends ForwardingBakedModel {
 		}
 
 		public void reset() {
-			processors = null;
-			multipassProcessors = null;
 			blockView = null;
 			state = null;
 			pos = null;
 			randomSupplier = null;
 			useManualCulling = false;
+			sliceFunc = null;
 
 			active = false;
 

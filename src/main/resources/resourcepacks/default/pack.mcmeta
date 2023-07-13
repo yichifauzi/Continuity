@@ -1,6 +1,8 @@
 {
   "pack": {
-    "pack_format": 9,
-    "description": "Default connected textures for Continuity"
+    "pack_format": 12,
+    "description": {
+      "translate": "resourcePack.continuity.default.description"
+    }
   }
 }

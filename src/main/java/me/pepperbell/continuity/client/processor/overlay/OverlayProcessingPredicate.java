@@ -1,7 +1,6 @@
 package me.pepperbell.continuity.client.processor.overlay;
 
 import java.util.EnumSet;
-import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
@@ -12,15 +11,14 @@ import me.pepperbell.continuity.client.util.QuadUtil;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.biome.Biome;
 
 public class OverlayProcessingPredicate extends BaseProcessingPredicate {
-	public OverlayProcessingPredicate(Set<Identifier> matchTilesSet, EnumSet<Direction> faces, Predicate<Biome> biomePredicate, IntPredicate heightPredicate, Predicate<String> blockEntityNamePredicate) {
-		super(matchTilesSet, faces, biomePredicate, heightPredicate, blockEntityNamePredicate);
+	public OverlayProcessingPredicate(EnumSet<Direction> faces, Predicate<Biome> biomePredicate, IntPredicate heightPredicate, Predicate<String> blockEntityNamePredicate) {
+		super(faces, biomePredicate, heightPredicate, blockEntityNamePredicate);
 	}
 
 	@Override
@@ -32,6 +30,6 @@ public class OverlayProcessingPredicate extends BaseProcessingPredicate {
 	}
 
 	public static OverlayProcessingPredicate fromProperties(BaseCTMProperties properties) {
-		return new OverlayProcessingPredicate(properties.getMatchTilesSet(), properties.getFaces(), properties.getBiomePredicate(), properties.getHeightPredicate(), properties.getBlockEntityNamePredicate());
+		return new OverlayProcessingPredicate(properties.getFaces(), properties.getBiomePredicate(), properties.getHeightPredicate(), properties.getBlockEntityNamePredicate());
 	}
 }

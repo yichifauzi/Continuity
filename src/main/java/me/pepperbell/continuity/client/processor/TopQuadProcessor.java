@@ -20,7 +20,7 @@ public class TopQuadProcessor extends ConnectingQuadProcessor {
 	}
 
 	@Override
-	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, int processorIndex, ProcessingContext context) {
+	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
 		Direction lightFace = quad.lightFace();
 		Direction.Axis axis;
 		if (state.contains(Properties.AXIS)) {

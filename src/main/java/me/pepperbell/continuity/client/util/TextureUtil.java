@@ -14,6 +14,6 @@ public final class TextureUtil {
 	}
 
 	public static boolean isMissingSprite(Sprite sprite) {
-		return sprite instanceof MissingSprite;
+		return sprite.getContents().getId().equals(MissingSprite.getMissingSpriteId());
 	}
 }

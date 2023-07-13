@@ -20,12 +20,12 @@ public abstract class AbstractQuadProcessor implements QuadProcessor {
 	}
 
 	@Override
-	public ProcessingResult processQuad(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, int processorIndex, ProcessingContext context) {
+	public ProcessingResult processQuad(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
 		if (!processingPredicate.shouldProcessQuad(quad, sprite, blockView, state, pos, context)) {
 			return ProcessingResult.CONTINUE;
 		}
-		return processQuadInner(quad, sprite, blockView, state, pos, randomSupplier, pass, processorIndex, context);
+		return processQuadInner(quad, sprite, blockView, state, pos, randomSupplier, pass, context);
 	}
 
-	public abstract ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, int processorIndex, ProcessingContext context);
+	public abstract ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context);
 }

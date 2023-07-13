@@ -7,6 +7,8 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import me.pepperbell.continuity.client.ContinuityClient;
 import me.pepperbell.continuity.client.processor.Symmetry;
 import me.pepperbell.continuity.client.util.RandomIndexProvider;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 
 public class RandomCTMProperties extends BaseCTMProperties {
@@ -15,8 +17,8 @@ public class RandomCTMProperties extends BaseCTMProperties {
 	protected Symmetry symmetry = Symmetry.NONE;
 	protected boolean linked = false;
 
-	public RandomCTMProperties(Properties properties, Identifier id, String packName, int packPriority, String method) {
-		super(properties, id, packName, packPriority, method);
+	public RandomCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, id, pack, packPriority, resourceManager, method);
 	}
 
 	@Override

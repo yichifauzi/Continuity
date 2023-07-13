@@ -7,8 +7,8 @@ public interface TileAmountValidator<T extends BaseCTMProperties> {
 	boolean validateTileAmount(int amount, T properties);
 
 	static <T extends BaseCTMProperties> CTMPropertiesFactory<T> wrapFactory(CTMPropertiesFactory<T> factory, TileAmountValidator<T> validator) {
-		return (properties, id, packName, packPriority, method) -> {
-			T ctmProperties = factory.createProperties(properties, id, packName, packPriority, method);
+		return (properties, id, pack, packPriority, resourceManager, method) -> {
+			T ctmProperties = factory.createProperties(properties, id, pack, packPriority, resourceManager, method);
 			if (ctmProperties == null) {
 				return null;
 			}

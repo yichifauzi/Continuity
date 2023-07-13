@@ -6,9 +6,10 @@ import org.jetbrains.annotations.ApiStatus;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.DynamicRegistryManager;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.biome.Biome;
 
 public final class BiomeHolderManager {
@@ -38,7 +39,7 @@ public final class BiomeHolderManager {
 		}
 
 		Map<Identifier, Identifier> compressedIdMap = new Object2ObjectOpenHashMap<>();
-		Registry<Biome> biomeRegistry = registryManager.get(Registry.BIOME_KEY);
+		Registry<Biome> biomeRegistry = registryManager.get(RegistryKeys.BIOME);
 		for (Identifier id : biomeRegistry.getIds()) {
 			String path = id.getPath();
 			String compressedPath = path.replace("_", "");

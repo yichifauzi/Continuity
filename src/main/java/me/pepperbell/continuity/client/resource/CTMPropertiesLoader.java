@@ -1,25 +1,29 @@
 package me.pepperbell.continuity.client.resource;
 
 import java.io.InputStream;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import java.util.function.Consumer;
+import java.util.Set;
+import java.util.function.Function;
 
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.pepperbell.continuity.api.client.CTMLoader;
 import me.pepperbell.continuity.api.client.CTMLoaderRegistry;
 import me.pepperbell.continuity.api.client.CTMProperties;
+import me.pepperbell.continuity.api.client.CachingPredicates;
+import me.pepperbell.continuity.api.client.QuadProcessor;
 import me.pepperbell.continuity.client.ContinuityClient;
+import me.pepperbell.continuity.client.model.QuadProcessors;
 import me.pepperbell.continuity.client.util.BooleanState;
-import net.minecraft.block.BlockState;
+import me.pepperbell.continuity.client.util.biome.BiomeHolderManager;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourcePack;
@@ -27,203 +31,97 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 
 public final class CTMPropertiesLoader {
-	private static final List<CTMLoadingContainer<?>> ALL = new ObjectArrayList<>();
-	private static final List<CTMLoadingContainer<?>> AFFECTS_BLOCK = new ObjectArrayList<>();
-	private static final List<CTMLoadingContainer<?>> IGNORES_BLOCK = new ObjectArrayList<>();
-	private static final List<CTMLoadingContainer<?>> VALID_FOR_MULTIPASS = new ObjectArrayList<>();
+	public static LoadingResult loadAllWithState(ResourceManager resourceManager) {
+		// TODO: move these to the very beginning of resource reload
+		BiomeHolderManager.clearCache();
 
-	private static final OptionalListCreator<CTMLoadingContainer<?>> LIST_CREATOR = new OptionalListCreator<>();
+		LoadingResult result = loadAll(resourceManager);
 
-	@ApiStatus.Internal
-	public static void loadAll(ResourceManager resourceManager) {
+		// TODO: move these to the very end of resource reload
+		BiomeHolderManager.refreshHolders();
+
+		return result;
+	}
+
+	public static LoadingResult loadAll(ResourceManager resourceManager) {
+		List<LoadingContainer<?>> containers = new ObjectArrayList<>();
+		Map<Identifier, Set<Identifier>> textureDependencies = new Object2ObjectOpenHashMap<>();
+		LoadingResult result = new LoadingResult(containers, textureDependencies);
+
 		int packPriority = 0;
 		Iterator<ResourcePack> iterator = resourceManager.streamResourcePacks().iterator();
 		BooleanState invalidIdentifierState = InvalidIdentifierStateHolder.get();
 		invalidIdentifierState.enable();
 		while (iterator.hasNext()) {
 			ResourcePack pack = iterator.next();
-			loadAll(pack, packPriority);
+			loadAll(pack, packPriority, resourceManager, result);
 			packPriority++;
 		}
 		invalidIdentifierState.disable();
-		resolveMultipassDependents();
+		containers.sort(Comparator.reverseOrder());
+
+		return result;
 	}
 
-	private static void loadAll(ResourcePack pack, int packPriority) {
-		String packName = pack.getName();
+	private static void loadAll(ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingResult result) {
 		for (String namespace : pack.getNamespaces(ResourceType.CLIENT_RESOURCES)) {
-			Collection<Identifier> ids = pack.findResources(ResourceType.CLIENT_RESOURCES, namespace, "optifine/ctm", id -> id.getPath().endsWith(".properties"));
-			for (Identifier id : ids) {
-				try (InputStream stream = pack.open(ResourceType.CLIENT_RESOURCES, id)) {
-					Properties properties = new Properties();
-					properties.load(stream);
-					load(properties, id, packName, packPriority);
-				} catch (Exception e) {
-					ContinuityClient.LOGGER.error("Failed to load CTM properties from file '" + id + "' in pack '" + packName + "'", e);
+			pack.findResources(ResourceType.CLIENT_RESOURCES, namespace, "optifine/ctm", (id, inputSupplier) -> {
+				if (id.getPath().endsWith(".properties")) {
+					try (InputStream stream = inputSupplier.get()) {
+						Properties properties = new Properties();
+						properties.load(stream);
+						load(properties, id, pack, packPriority, resourceManager, result);
+					} catch (Exception e) {
+						ContinuityClient.LOGGER.error("Failed to load CTM properties from file '" + id + "' in pack '" + pack.getName() + "'", e);
+					}
 				}
-			}
+			});
 		}
 	}
 
-	private static void load(Properties properties, Identifier id, String packName, int packPriority) {
+	private static void load(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingResult result) {
 		String method = properties.getProperty("method", "ctm").trim();
 		CTMLoader<?> loader = CTMLoaderRegistry.get().getLoader(method);
 		if (loader != null) {
-			load(loader, properties, id, packName, packPriority, method);
+			load(loader, properties, id, pack, packPriority, resourceManager, method, result);
 		} else {
-			ContinuityClient.LOGGER.error("Unknown 'method' value '" + method + "' in file '" + id + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.error("Unknown 'method' value '" + method + "' in file '" + id + "' in pack '" + pack.getName() + "'");
 		}
 	}
 
-	private static <T extends CTMProperties> void load(CTMLoader<T> loader, Properties properties, Identifier id, String packName, int packPriority, String method) {
-		T ctmProperties = loader.getPropertiesFactory().createProperties(properties, id, packName, packPriority, method);
+	private static <T extends CTMProperties> void load(CTMLoader<T> loader, Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method, LoadingResult result) {
+		T ctmProperties = loader.getPropertiesFactory().createProperties(properties, id, pack, packPriority, resourceManager, method);
 		if (ctmProperties != null) {
-			CTMLoadingContainer<T> container = new CTMLoadingContainer<>(loader, ctmProperties);
-			ALL.add(container);
-			if (ctmProperties.affectsBlockStates()) {
-				AFFECTS_BLOCK.add(container);
-			} else {
-				IGNORES_BLOCK.add(container);
-			}
-			if (ctmProperties.affectsTextures() && ctmProperties.isValidForMultipass()) {
-				VALID_FOR_MULTIPASS.add(container);
+			LoadingContainer<T> container = new LoadingContainer<>(loader, ctmProperties);
+			result.containers().add(container);
+			for (SpriteIdentifier spriteId : ctmProperties.getTextureDependencies()) {
+				Set<Identifier> atlasTextureDependencies = result.textureDependencies().computeIfAbsent(spriteId.getAtlasId(), id1 -> new ObjectOpenHashSet<>());
+				atlasTextureDependencies.add(spriteId.getTextureId());
 			}
 		}
 	}
 
-	private static void resolveMultipassDependents() {
-		if (isEmpty()) {
-			return;
+	public static List<QuadProcessors.ProcessorHolder> createProcessorHolders(List<LoadingContainer<?>> containers, Function<SpriteIdentifier, Sprite> textureGetter) {
+		List<QuadProcessors.ProcessorHolder> processorHolders = new ObjectArrayList<>();
+		for (LoadingContainer<?> container : containers) {
+			processorHolders.add(container.toProcessorHolder(textureGetter));
 		}
-
-		Object2ObjectOpenHashMap<Identifier, CTMLoadingContainer<?>> texture2ContainerMap = new Object2ObjectOpenHashMap<>();
-		Object2ObjectOpenHashMap<Identifier, List<CTMLoadingContainer<?>>> texture2ContainerListMap = new Object2ObjectOpenHashMap<>();
-
-		int amount = ALL.size();
-		for (int i = 0; i < amount; i++) {
-			CTMLoadingContainer<?> container = ALL.get(i);
-			Collection<SpriteIdentifier> textureDependencies = container.getProperties().getTextureDependencies();
-			for (SpriteIdentifier spriteId : textureDependencies) {
-				Identifier textureId = spriteId.getTextureId();
-				CTMLoadingContainer<?> containerValue = texture2ContainerMap.get(textureId);
-				if (containerValue == null) {
-					List<CTMLoadingContainer<?>> containerListValue = texture2ContainerListMap.get(textureId);
-					if (containerListValue == null) {
-						texture2ContainerMap.put(textureId, container);
-					} else {
-						containerListValue.add(container);
-					}
-				} else {
-					List<CTMLoadingContainer<?>> containerList = new ObjectArrayList<>();
-					containerList.add(containerValue);
-					containerList.add(container);
-					texture2ContainerListMap.put(textureId, containerList);
-					texture2ContainerMap.remove(textureId);
-				}
-			}
-		}
-
-		int amount1 = VALID_FOR_MULTIPASS.size();
-		ObjectIterator<Object2ObjectMap.Entry<Identifier, CTMLoadingContainer<?>>> iterator = texture2ContainerMap.object2ObjectEntrySet().fastIterator();
-		while (iterator.hasNext()) {
-			Object2ObjectMap.Entry<Identifier, CTMLoadingContainer<?>> entry = iterator.next();
-			Identifier textureId = entry.getKey();
-			CTMLoadingContainer<?> container1 = entry.getValue();
-
-			for (int i = 0; i < amount1; i++) {
-				CTMLoadingContainer<?> container = VALID_FOR_MULTIPASS.get(i);
-				if (container.getProperties().affectsTexture(textureId)) {
-					container1.addMultipassDependent(container);
-				}
-			}
-		}
-		ObjectIterator<Object2ObjectMap.Entry<Identifier, List<CTMLoadingContainer<?>>>> iterator1 = texture2ContainerListMap.object2ObjectEntrySet().fastIterator();
-		while (iterator1.hasNext()) {
-			Object2ObjectMap.Entry<Identifier, List<CTMLoadingContainer<?>>> entry = iterator1.next();
-			Identifier textureId = entry.getKey();
-			List<CTMLoadingContainer<?>> containerList = entry.getValue();
-			int amount2 = containerList.size();
-
-			for (int i = 0; i < amount1; i++) {
-				CTMLoadingContainer<?> container = VALID_FOR_MULTIPASS.get(i);
-				if (container.getProperties().affectsTexture(textureId)) {
-					for (int j = 0; j < amount2; j++) {
-						CTMLoadingContainer<?> container1 = containerList.get(j);
-						container1.addMultipassDependent(container);
-					}
-				}
-			}
-		}
-
-		for (int i = 0; i < amount; i++) {
-			CTMLoadingContainer<?> container = ALL.get(i);
-			container.resolveRecursiveMultipassDependents();
-		}
+		return processorHolders;
 	}
 
-	public static void consumeAllAffecting(BlockState state, Consumer<CTMLoadingContainer<?>> consumer) {
-		int amount = AFFECTS_BLOCK.size();
-		for (int i = 0; i < amount; i++) {
-			CTMLoadingContainer<?> container = AFFECTS_BLOCK.get(i);
-			if (container.getProperties().affectsBlockState(state)) {
-				consumer.accept(container);
-			}
+	public record LoadingContainer<T extends CTMProperties>(CTMLoader<T> loader, T properties) implements Comparable<LoadingContainer<?>> {
+		public QuadProcessors.ProcessorHolder toProcessorHolder(Function<SpriteIdentifier, Sprite> textureGetter) {
+			QuadProcessor processor = loader.getProcessorFactory().createProcessor(properties, textureGetter);
+			CachingPredicates predicates = loader.getPredicatesFactory().createPredicates(properties, textureGetter);
+			return new QuadProcessors.ProcessorHolder(processor, predicates);
 		}
-	}
-
-	@Nullable
-	public static List<CTMLoadingContainer<?>> getAllAffecting(BlockState state) {
-		consumeAllAffecting(state, LIST_CREATOR);
-		return LIST_CREATOR.get();
-	}
-
-	public static void consumeAllAffecting(Collection<SpriteIdentifier> spriteIds, Consumer<CTMLoadingContainer<?>> consumer) {
-		int amount = IGNORES_BLOCK.size();
-		for (int i = 0; i < amount; i++) {
-			CTMLoadingContainer<?> container = IGNORES_BLOCK.get(i);
-			for (SpriteIdentifier spriteId : spriteIds) {
-				if (container.getProperties().affectsTexture(spriteId.getTextureId())) {
-					consumer.accept(container);
-					break;
-				}
-			}
-		}
-	}
-
-	@Nullable
-	public static List<CTMLoadingContainer<?>> getAllAffecting(Collection<SpriteIdentifier> spriteIds) {
-		consumeAllAffecting(spriteIds, LIST_CREATOR);
-		return LIST_CREATOR.get();
-	}
-
-	public static boolean isEmpty() {
-		return ALL.isEmpty();
-	}
-
-	@ApiStatus.Internal
-	public static void clearAll() {
-		ALL.clear();
-		AFFECTS_BLOCK.clear();
-		IGNORES_BLOCK.clear();
-		VALID_FOR_MULTIPASS.clear();
-	}
-
-	private static class OptionalListCreator<T> implements Consumer<T> {
-		private ObjectArrayList<T> list = null;
 
 		@Override
-		public void accept(T t) {
-			if (list == null) {
-				list = new ObjectArrayList<>();
-			}
-			list.add(t);
+		public int compareTo(@NotNull LoadingContainer<?> o) {
+			return properties.compareTo(o.properties);
 		}
+	}
 
-		@Nullable
-		public ObjectArrayList<T> get() {
-			ObjectArrayList<T> list = this.list;
-			this.list = null;
-			return list;
-		}
+	public record LoadingResult(List<LoadingContainer<?>> containers, Map<Identifier, Set<Identifier>> textureDependencies) {
 	}
 }

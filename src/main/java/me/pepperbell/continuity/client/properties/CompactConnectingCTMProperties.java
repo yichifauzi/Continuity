@@ -5,13 +5,15 @@ import java.util.Properties;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import me.pepperbell.continuity.client.ContinuityClient;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 
 public class CompactConnectingCTMProperties extends StandardConnectingCTMProperties {
 	protected Int2IntMap tileReplacementMap;
 
-	public CompactConnectingCTMProperties(Properties properties, Identifier id, String packName, int packPriority, String method) {
-		super(properties, id, packName, packPriority, method);
+	public CompactConnectingCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, id, pack, packPriority, resourceManager, method);
 	}
 
 	@Override
@@ -54,11 +56,6 @@ public class CompactConnectingCTMProperties extends StandardConnectingCTMPropert
 				tileReplacementMap.put(index, value);
 			}
 		}
-	}
-
-	@Override
-	public boolean isValidForMultipass() {
-		return false;
 	}
 
 	public Int2IntMap getTileReplacementMap() {

@@ -4,6 +4,8 @@ import java.util.Properties;
 
 import me.pepperbell.continuity.client.ContinuityClient;
 import me.pepperbell.continuity.client.processor.Symmetry;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 
 public class RepeatCTMProperties extends BaseCTMProperties {
@@ -11,8 +13,8 @@ public class RepeatCTMProperties extends BaseCTMProperties {
 	protected int height;
 	protected Symmetry symmetry = Symmetry.NONE;
 
-	public RepeatCTMProperties(Properties properties, Identifier id, String packName, int packPriority, String method) {
-		super(properties, id, packName, packPriority, method);
+	public RepeatCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, id, pack, packPriority, resourceManager, method);
 	}
 
 	@Override

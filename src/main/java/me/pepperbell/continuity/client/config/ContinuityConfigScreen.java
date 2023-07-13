@@ -1,10 +1,10 @@
 package me.pepperbell.continuity.client.config;
 
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
 
 public class ContinuityConfigScreen extends Screen {
@@ -19,11 +19,19 @@ public class ContinuityConfigScreen extends Screen {
 
 	@Override
 	protected void init() {
-		addDrawableChild(createBooleanOptionButton(width / 2 - 100 - 110, height / 2 - 10 - 12, 200, 20, config.connectedTextures));
-		addDrawableChild(createBooleanOptionButton(width / 2 - 100 + 110, height / 2 - 10 - 12, 200, 20, config.emissiveTextures));
-		addDrawableChild(createBooleanOptionButton(width / 2 - 100 - 110, height / 2 - 10 + 12, 200, 20, config.customBlockLayers));
+		addDrawableChild(startBooleanOptionButton(config.connectedTextures)
+				.dimensions(width / 2 - 100 - 110, height / 2 - 10 - 12, 200, 20)
+				.build());
+		addDrawableChild(startBooleanOptionButton(config.emissiveTextures)
+				.dimensions(width / 2 - 100 + 110, height / 2 - 10 - 12, 200, 20)
+				.build());
+		addDrawableChild(startBooleanOptionButton(config.customBlockLayers)
+				.dimensions(width / 2 - 100 - 110, height / 2 - 10 + 12, 200, 20)
+				.build());
 
-		addDrawableChild(new ButtonWidget(width / 2 - 100, height - 40, 200, 20, ScreenTexts.DONE, button -> close()));
+		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close())
+				.dimensions(width / 2 - 100, height - 40, 200, 20)
+				.build());
 	}
 
 	@Override
@@ -52,23 +60,16 @@ public class ContinuityConfigScreen extends Screen {
 		return translationKey + ".tooltip";
 	}
 
-	private ButtonWidget.TooltipSupplier createDefaultTooltipSupplier(StringVisitable text) {
-		return (button, matrices, mouseX, mouseY) -> {
-			renderOrderedTooltip(matrices, textRenderer.wrapLines(text, width / 100 * 100 / 2), mouseX, mouseY);
-		};
-	}
-
-	private ButtonWidget createBooleanOptionButton(int x, int y, int width, int height, Option<Boolean> option) {
+	private ButtonWidget.Builder startBooleanOptionButton(Option<Boolean> option) {
 		String translationKey = getTranslationKey(option.getKey());
 		Text text = Text.translatable(translationKey);
 		Text tooltipText = Text.translatable(getTooltipKey(translationKey));
-		return new ButtonWidget(x, y, width, height, ScreenTexts.composeToggleText(text, option.get()),
+		return ButtonWidget.builder(ScreenTexts.composeToggleText(text, option.get()),
 				button -> {
 					boolean newValue = !option.get();
 					button.setMessage(ScreenTexts.composeToggleText(text, newValue));
 					option.set(newValue);
-				},
-				createDefaultTooltipSupplier(tooltipText)
-		);
+				})
+				.tooltip(Tooltip.of(tooltipText));
 	}
 }

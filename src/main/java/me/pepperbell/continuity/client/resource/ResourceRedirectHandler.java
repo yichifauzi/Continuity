@@ -10,7 +10,6 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import me.pepperbell.continuity.client.mixin.ReloadableResourceManagerImplAccessor;
 import me.pepperbell.continuity.client.mixinterface.LifecycledResourceManagerImplExtension;
 import me.pepperbell.continuity.client.util.BooleanState;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 
@@ -49,11 +48,6 @@ public class ResourceRedirectHandler {
 			return extension.continuity$getRedirectHandler();
 		}
 		return null;
-	}
-
-	@Nullable
-	public static ResourceRedirectHandler get() {
-		return get(MinecraftClient.getInstance().getResourceManager());
 	}
 
 	public String getSourceSpritePath(String absolutePath) {

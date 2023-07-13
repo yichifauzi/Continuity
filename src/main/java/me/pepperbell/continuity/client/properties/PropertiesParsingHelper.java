@@ -20,16 +20,16 @@ import me.pepperbell.continuity.client.resource.ResourceRedirectHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.registry.Registries;
 import net.minecraft.state.property.Property;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.InvalidIdentifierException;
-import net.minecraft.util.registry.Registry;
 
 public final class PropertiesParsingHelper {
 	public static final Predicate<BlockState> EMPTY_BLOCK_STATE_PREDICATE = state -> false;
 
 	@Nullable
-	public static ImmutableSet<Identifier> parseMatchTiles(Properties properties, String propertyKey, Identifier fileLocation, String packName) {
+	public static ImmutableSet<Identifier> parseMatchTiles(Properties properties, String propertyKey, Identifier fileLocation, String packName, @Nullable ResourceRedirectHandler redirectHandler) {
 		String matchTilesStr = properties.getProperty(propertyKey);
 		if (matchTilesStr == null) {
 			return null;
@@ -38,7 +38,6 @@ public final class PropertiesParsingHelper {
 		String[] matchTileStrs = matchTilesStr.trim().split(" ");
 		if (matchTileStrs.length != 0) {
 			String basePath = FilenameUtils.getPath(fileLocation.getPath());
-			ResourceRedirectHandler redirectHandler = ResourceRedirectHandler.get();
 			ImmutableSet.Builder<Identifier> setBuilder = ImmutableSet.builder();
 
 			for (int i = 0; i < matchTileStrs.length; i++) {
@@ -78,6 +77,9 @@ public final class PropertiesParsingHelper {
 							if (namespace == null) {
 								namespace = fileLocation.getNamespace();
 							}
+						}
+						if (namespace == null) {
+							namespace = Identifier.DEFAULT_NAMESPACE;
 						}
 
 						try {
@@ -128,7 +130,7 @@ public final class PropertiesParsingHelper {
 							continue;
 						}
 
-						Block block = Registry.BLOCK.get(blockId);
+						Block block = Registries.BLOCK.get(blockId);
 						if (block != Blocks.AIR) {
 							if (parts.length > startIndex) {
 								ImmutableMap.Builder<Property<?>, Comparable<?>[]> propertyMapBuilder = ImmutableMap.builder();

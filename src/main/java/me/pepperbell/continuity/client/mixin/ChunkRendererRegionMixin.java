@@ -6,8 +6,8 @@ import org.spongepowered.asm.mixin.Shadow;
 
 import me.pepperbell.continuity.client.mixinterface.ChunkRendererRegionExtension;
 import net.minecraft.client.render.chunk.ChunkRendererRegion;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 

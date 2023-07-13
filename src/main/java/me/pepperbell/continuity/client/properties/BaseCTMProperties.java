@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.IntPredicate;
@@ -23,7 +24,6 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.pepperbell.continuity.api.client.CTMProperties;
 import me.pepperbell.continuity.api.client.CTMPropertiesFactory;
 import me.pepperbell.continuity.client.ContinuityClient;
-import me.pepperbell.continuity.client.resource.ResourcePackUtil;
 import me.pepperbell.continuity.client.resource.ResourceRedirectHandler;
 import me.pepperbell.continuity.client.util.MathUtil;
 import me.pepperbell.continuity.client.util.TextureUtil;
@@ -32,13 +32,16 @@ import me.pepperbell.continuity.client.util.biome.BiomeHolderManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.SpriteIdentifier;
+import net.minecraft.registry.Registries;
 import net.minecraft.resource.DefaultResourcePack;
+import net.minecraft.resource.Resource;
+import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.InvalidIdentifierException;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.biome.Biome;
 
 public class BaseCTMProperties implements CTMProperties {
@@ -53,6 +56,7 @@ public class BaseCTMProperties implements CTMProperties {
 	protected Identifier id;
 	protected String packName;
 	protected int packPriority;
+	protected ResourceManager resourceManager;
 	protected String method;
 
 	protected Set<Identifier> matchTilesSet;
@@ -69,38 +73,13 @@ public class BaseCTMProperties implements CTMProperties {
 	protected Set<SpriteIdentifier> textureDependencies;
 	protected List<SpriteIdentifier> spriteIds;
 
-	public BaseCTMProperties(Properties properties, Identifier id, String packName, int packPriority, String method) {
+	public BaseCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
 		this.properties = properties;
 		this.id = id;
-		this.packName = packName;
+		this.packName = pack.getName();
 		this.packPriority = packPriority;
+		this.resourceManager = resourceManager;
 		this.method = method;
-	}
-
-	@Override
-	public boolean affectsTextures() {
-		return matchTilesSet != null;
-	}
-
-	@Override
-	public boolean affectsTexture(Identifier id) {
-		if (matchTilesSet != null) {
-			return matchTilesSet.contains(id);
-		}
-		return false;
-	}
-
-	@Override
-	public boolean affectsBlockStates() {
-		return matchBlocksPredicate != null;
-	}
-
-	@Override
-	public boolean affectsBlockState(BlockState state) {
-		if (matchBlocksPredicate != null) {
-			return matchBlocksPredicate.test(state);
-		}
-		return false;
 	}
 
 	@Override
@@ -151,7 +130,7 @@ public class BaseCTMProperties implements CTMProperties {
 	}
 
 	protected void parseMatchTiles() {
-		matchTilesSet = PropertiesParsingHelper.parseMatchTiles(properties, "matchTiles", id, packName);
+		matchTilesSet = PropertiesParsingHelper.parseMatchTiles(properties, "matchTiles", id, packName, ResourceRedirectHandler.get(resourceManager));
 		if (matchTilesSet != null && matchTilesSet.isEmpty()) {
 			valid = false;
 		}
@@ -170,7 +149,7 @@ public class BaseCTMProperties implements CTMProperties {
 			if (baseName.startsWith("block_")) {
 				try {
 					Identifier id = new Identifier(baseName.substring(6));
-					Block block = Registry.BLOCK.get(id);
+					Block block = Registries.BLOCK.get(id);
 					if (block != Blocks.AIR) {
 						matchBlocksPredicate = state -> state.getBlock() == block;
 					}
@@ -252,8 +231,12 @@ public class BaseCTMProperties implements CTMProperties {
 								} else if (!path.startsWith("textures/") && !path.startsWith("optifine/")) {
 									path = basePath + path;
 								}
-								if (path.startsWith("optifine/") && namespace == null) {
-									namespace = id.getNamespace();
+								if (namespace == null) {
+									if (path.startsWith("optifine/")) {
+										namespace = id.getNamespace();
+									} else {
+										namespace = Identifier.DEFAULT_NAMESPACE;
+									}
 								}
 
 								try {
@@ -553,7 +536,7 @@ public class BaseCTMProperties implements CTMProperties {
 	protected void parsePrioritize() {
 		String prioritizeStr = properties.getProperty("prioritize");
 		if (prioritizeStr == null) {
-			prioritized = affectsTextures();
+			prioritized = matchTilesSet != null;
 			return;
 		}
 
@@ -568,7 +551,7 @@ public class BaseCTMProperties implements CTMProperties {
 
 		String[] conditionStrs = conditionsStr.trim().split("\\|");
 		if (conditionStrs.length != 0) {
-			DefaultResourcePack defaultPack = ResourcePackUtil.getDefaultResourcePack();
+			DefaultResourcePack defaultPack = MinecraftClient.getInstance().getDefaultResourcePack();
 
 			for (int i = 0; i < conditionStrs.length; i++) {
 				String conditionStr = conditionStrs[i];
@@ -592,14 +575,14 @@ public class BaseCTMProperties implements CTMProperties {
 						}
 
 						if (packStr == null || packStr.equals("default")) {
-							ResourcePack pack = ResourcePackUtil.getProvidingResourcePack(resourceId);
-							if (pack != null && pack != defaultPack) {
+							Optional<Resource> optionalResource = resourceManager.getResource(resourceId);
+							if (optionalResource.isPresent() && optionalResource.get().getPack() != defaultPack) {
 								valid = false;
 								break;
 							}
 						} else if (packStr.equals("programmer_art")) {
-							ResourcePack pack = ResourcePackUtil.getProvidingResourcePack(resourceId);
-							if (pack != null && !pack.getName().equals("Programmer Art")) {
+							Optional<Resource> optionalResource = resourceManager.getResource(resourceId);
+							if (optionalResource.isPresent() && !optionalResource.get().getPack().getName().equals("programmer_art")) {
 								valid = false;
 								break;
 							}
@@ -619,7 +602,7 @@ public class BaseCTMProperties implements CTMProperties {
 	protected void resolveTiles() {
 		textureDependencies = new ObjectOpenHashSet<>();
 		spriteIds = new ObjectArrayList<>();
-		ResourceRedirectHandler redirectHandler = ResourceRedirectHandler.get();
+		ResourceRedirectHandler redirectHandler = ResourceRedirectHandler.get(resourceManager);
 
 		for (Identifier tile : tiles) {
 			SpriteIdentifier spriteId;
@@ -711,8 +694,8 @@ public class BaseCTMProperties implements CTMProperties {
 	}
 
 	public static <T extends BaseCTMProperties> CTMPropertiesFactory<T> wrapFactory(CTMPropertiesFactory<T> factory) {
-		return (properties, id, packName, packPriority, method) -> {
-			T ctmProperties = factory.createProperties(properties, id, packName, packPriority, method);
+		return (properties, id, pack, packPriority, resourceManager, method) -> {
+			T ctmProperties = factory.createProperties(properties, id, pack, packPriority, resourceManager, method);
 			if (ctmProperties == null) {
 				return null;
 			}

@@ -8,6 +8,8 @@ import me.pepperbell.continuity.client.processor.ConnectionPredicate;
 import me.pepperbell.continuity.client.util.SpriteCalculator;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.Sprite;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -16,8 +18,8 @@ import net.minecraft.world.BlockRenderView;
 public class ConnectingCTMProperties extends BaseCTMProperties {
 	protected ConnectionPredicate connectionPredicate;
 
-	public ConnectingCTMProperties(Properties properties, Identifier id, String packName, int packPriority, String method) {
-		super(properties, id, packName, packPriority, method);
+	public ConnectingCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, id, pack, packPriority, resourceManager, method);
 	}
 
 	@Override
@@ -43,9 +45,9 @@ public class ConnectingCTMProperties extends BaseCTMProperties {
 
 	protected void detectConnect() {
 		if (connectionPredicate == null) {
-			if (affectsBlockStates()) {
+			if (matchBlocksPredicate != null) {
 				connectionPredicate = ConnectionType.BLOCK;
-			} else if (affectsTextures()) {
+			} else if (matchTilesSet != null) {
 				connectionPredicate = ConnectionType.TILE;
 			}
 		}

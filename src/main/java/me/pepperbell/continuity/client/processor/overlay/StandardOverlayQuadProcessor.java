@@ -59,7 +59,7 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 	}
 
 	@Override
-	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, int processorIndex, ProcessingContext context) {
+	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
 		Direction lightFace = quad.lightFace();
 		OverlayRenderer renderer = getRenderer(blockView, pos, state, lightFace, sprite, DirectionMaps.getMap(lightFace)[0], context);
 		if (renderer != null) {
@@ -81,7 +81,7 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 			}
 		}
 		if (connectTilesSet != null) {
-			if (!connectTilesSet.contains(SpriteCalculator.getSprite(other, face).getId())) {
+			if (!connectTilesSet.contains(SpriteCalculator.getSprite(other, face).getContents().getId())) {
 				return false;
 			}
 		}
@@ -95,7 +95,7 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 			}
 		}
 		if (matchTilesSet != null) {
-			if (!matchTilesSet.contains(SpriteCalculator.getSprite(other, face).getId())) {
+			if (!matchTilesSet.contains(SpriteCalculator.getSprite(other, face).getContents().getId())) {
 				return false;
 			}
 		}
