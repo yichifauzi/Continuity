@@ -37,7 +37,7 @@ public class ContinuityConfigScreen extends Screen {
 	@Override
 	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
 		renderBackground(matrices);
-		drawCenteredText(matrices, textRenderer, title, width / 2, 30, 0xFFFFFF);
+		drawCenteredTextWithShadow(matrices, textRenderer, title, width / 2, 30, 0xFFFFFF);
 		super.render(matrices, mouseX, mouseY, delta);
 	}
 
