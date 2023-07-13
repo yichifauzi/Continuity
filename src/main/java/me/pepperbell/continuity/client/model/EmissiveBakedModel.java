@@ -139,7 +139,7 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 			if (emissiveSprite != null) {
 				quad.copyTo(emitter);
 
-				BlendMode blendMode = RenderUtil.getBlendMode(quad);
+				BlendMode blendMode = quad.material().blendMode();
 				RenderMaterial emissiveMaterial;
 				if (blendMode == BlendMode.DEFAULT) {
 					if (calculateDefaultLayer) {
