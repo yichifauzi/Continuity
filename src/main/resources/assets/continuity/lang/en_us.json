@@ -7,7 +7,7 @@
   "options.continuity.custom_block_layers": "Custom Block Layers",
   "options.continuity.custom_block_layers.tooltip": "Enable or disable custom block layers.",
   "resourcePack.continuity.default.name": "Default Connected Textures",
-  "resourcePack.continuity.default.description": "Bookshelves, sandstone, and glass",
+  "resourcePack.continuity.default.description": "Glass, sandstone, bookshelves",
   "resourcePack.continuity.glass_pane_culling_fix.name": "Glass Pane Culling Fix",
-  "resourcePack.continuity.glass_pane_culling_fix.description": "Fixes top and bottom face culling"
+  "resourcePack.continuity.glass_pane_culling_fix.description": "Cull faces between glass panes"
 }
