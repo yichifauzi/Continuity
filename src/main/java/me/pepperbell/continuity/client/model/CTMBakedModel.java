@@ -53,7 +53,7 @@ public class CTMBakedModel extends ForwardingBakedModel {
 		super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
 		context.popTransform();
 
-		quadTransform.processingContext.accept(context);
+		quadTransform.processingContext.outputTo(context.getEmitter());
 		quadTransform.reset();
 	}
 
@@ -109,7 +109,7 @@ public class CTMBakedModel extends ForwardingBakedModel {
 		}
 
 		protected Boolean transformOnce(MutableQuadView quad, int pass) {
-			Sprite sprite = RenderUtil.getSpriteFinder().find(quad, 0);
+			Sprite sprite = RenderUtil.getSpriteFinder().find(quad);
 			QuadProcessors.Slice slice = sliceFunc.apply(sprite);
 			QuadProcessor[] processors = pass == 0 ? slice.processors() : slice.multipassProcessors();
 			for (QuadProcessor processor : processors) {

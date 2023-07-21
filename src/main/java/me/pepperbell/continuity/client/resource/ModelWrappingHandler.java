@@ -1,9 +1,14 @@
 package me.pepperbell.continuity.client.resource;
 
+import org.jetbrains.annotations.ApiStatus;
+
 import com.google.common.collect.ImmutableMap;
 
+import me.pepperbell.continuity.client.mixinterface.ModelLoaderExtension;
 import me.pepperbell.continuity.client.model.CTMBakedModel;
 import me.pepperbell.continuity.client.model.EmissiveBakedModel;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelModifier;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.block.BlockModels;
@@ -29,7 +34,7 @@ public final class ModelWrappingHandler {
 		return builder.build();
 	}
 
-	public static BakedModel wrap(BakedModel model, Identifier modelId, boolean wrapCTM, boolean wrapEmissive) {
+	private static BakedModel wrap(BakedModel model, Identifier modelId, boolean wrapCTM, boolean wrapEmissive) {
 		if (model != null && !model.isBuiltin() && !modelId.equals(ModelLoader.MISSING_ID)) {
 			if (wrapCTM) {
 				if (modelId instanceof ModelIdentifier) {
@@ -44,5 +49,17 @@ public final class ModelWrappingHandler {
 			}
 		}
 		return model;
+	}
+
+	@ApiStatus.Internal
+	public static void init() {
+		ModelLoadingPlugin.register(pluginCtx -> {
+			pluginCtx.modifyModelAfterBake().register(ModelModifier.WRAP_LAST_PHASE, (model, ctx) -> {
+				ModelLoader modelLoader = ctx.loader();
+				boolean wrapCTM = ((ModelLoaderExtension) modelLoader).continuity$getWrapCTM();
+				boolean wrapEmissive = ((ModelLoaderExtension) modelLoader).continuity$getWrapEmissive();
+				return wrap(model, ctx.id(), wrapCTM, wrapEmissive);
+			});
+		});
 	}
 }

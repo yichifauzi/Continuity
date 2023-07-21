@@ -14,6 +14,7 @@ import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadEmitter;
 import net.fabricmc.fabric.api.renderer.v1.model.ForwardingBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
+import net.fabricmc.fabric.api.util.TriState;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
@@ -34,7 +35,7 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 		EMISSIVE_MATERIALS = new RenderMaterial[blendModes.length];
 		MaterialFinder finder = RenderUtil.getMaterialFinder();
 		for (BlendMode blendMode : blendModes) {
-			EMISSIVE_MATERIALS[blendMode.ordinal()] = finder.emissive(0, true).disableDiffuse(0, true).disableAo(0, true).blendMode(0, blendMode).find();
+			EMISSIVE_MATERIALS[blendMode.ordinal()] = finder.emissive(true).disableDiffuse(true).ambientOcclusion(TriState.FALSE).blendMode(blendMode).find();
 		}
 
 		DEFAULT_EMISSIVE_MATERIAL = EMISSIVE_MATERIALS[BlendMode.DEFAULT.ordinal()];
@@ -72,7 +73,7 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 		context.popTransform();
 
 		if (quadTransform.didEmit()) {
-			context.meshConsumer().accept(meshBuilder.build());
+			meshBuilder.build().outputTo(context.getEmitter());
 		}
 		quadTransform.reset();
 	}
@@ -104,7 +105,7 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 		context.popTransform();
 
 		if (quadTransform.didEmit()) {
-			context.meshConsumer().accept(meshBuilder.build());
+			meshBuilder.build().outputTo(context.getEmitter());
 		}
 		quadTransform.reset();
 	}
@@ -134,10 +135,10 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 				return false;
 			}
 
-			Sprite sprite = RenderUtil.getSpriteFinder().find(quad, 0);
+			Sprite sprite = RenderUtil.getSpriteFinder().find(quad);
 			Sprite emissiveSprite = EmissiveSpriteApi.get().getEmissiveSprite(sprite);
 			if (emissiveSprite != null) {
-				quad.copyTo(emitter);
+				emitter.copyFrom(quad);
 
 				BlendMode blendMode = quad.material().blendMode();
 				RenderMaterial emissiveMaterial;
@@ -208,10 +209,10 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 
 		@Override
 		public boolean transform(MutableQuadView quad) {
-			Sprite sprite = RenderUtil.getSpriteFinder().find(quad, 0);
+			Sprite sprite = RenderUtil.getSpriteFinder().find(quad);
 			Sprite emissiveSprite = EmissiveSpriteApi.get().getEmissiveSprite(sprite);
 			if (emissiveSprite != null) {
-				quad.copyTo(emitter);
+				emitter.copyFrom(quad);
 				emitter.material(DEFAULT_EMISSIVE_MATERIAL);
 				QuadUtil.interpolate(emitter, sprite, emissiveSprite);
 				emitter.emit();

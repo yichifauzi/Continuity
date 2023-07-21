@@ -4,14 +4,18 @@ import java.util.Collection;
 import java.util.List;
 
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.client.ContinuityClient;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
+import net.fabricmc.fabric.api.renderer.v1.material.BlendMode;
 import net.fabricmc.fabric.api.renderer.v1.material.MaterialFinder;
+import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 import net.fabricmc.fabric.api.renderer.v1.model.SpriteFinder;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourceReloadListenerKeys;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.fabricmc.fabric.api.util.TriState;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.color.block.BlockColors;
@@ -36,6 +40,19 @@ public final class RenderUtil {
 			return -1;
 		}
 		return 0xFF000000 | BLOCK_COLORS.getColor(state, blockView, pos, tintIndex);
+	}
+
+	public static RenderMaterial findOverlayMaterial(BlendMode blendMode, @Nullable BlockState tintBlock) {
+		MaterialFinder finder = getMaterialFinder();
+		finder.blendMode(blendMode);
+		if (tintBlock != null) {
+			finder.ambientOcclusion(TriState.of(canHaveAO(tintBlock)));
+		}
+		return finder.find();
+	}
+
+	public static boolean canHaveAO(BlockState state) {
+		return state.getLuminance() == 0;
 	}
 
 	public static MaterialFinder getMaterialFinder() {

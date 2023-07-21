@@ -55,7 +55,7 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 
 		this.tintIndex = tintIndex;
 		this.tintBlock = tintBlock;
-		material = RenderUtil.getMaterialFinder().blendMode(0, layer).find();
+		material = RenderUtil.findOverlayMaterial(layer, this.tintBlock);
 	}
 
 	@Override
