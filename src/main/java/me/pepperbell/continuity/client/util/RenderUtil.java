@@ -21,6 +21,7 @@ import net.fabricmc.fabric.api.renderer.v1.model.SpriteFinder;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourceReloadListenerKeys;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.fabricmc.fabric.api.util.TriState;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.SemanticVersion;
@@ -129,6 +130,19 @@ public final class RenderUtil {
 			return -1;
 		}
 		return 0xFF000000 | BLOCK_COLORS.getColor(state, blockView, pos, tintIndex);
+	}
+
+	public static RenderMaterial findOverlayMaterial(BlendMode blendMode, @Nullable BlockState tintBlock) {
+		MaterialFinder finder = getMaterialFinder();
+		finder.blendMode(blendMode);
+		if (tintBlock != null) {
+			finder.ambientOcclusion(TriState.of(canHaveAO(tintBlock)));
+		}
+		return finder.find();
+	}
+
+	public static boolean canHaveAO(BlockState state) {
+		return state.getLuminance() == 0;
 	}
 
 	public static MaterialFinder getMaterialFinder() {
