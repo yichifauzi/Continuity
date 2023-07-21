@@ -1,10 +1,13 @@
 package me.pepperbell.continuity.client.util;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Nullable;
 
 import io.vram.frex.api.material.MaterialConstants;
 import io.vram.frex.fabric.compat.FabricQuadView;
@@ -12,14 +15,16 @@ import me.pepperbell.continuity.client.ContinuityClient;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.material.BlendMode;
 import net.fabricmc.fabric.api.renderer.v1.material.MaterialFinder;
+import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.fabricmc.fabric.api.renderer.v1.model.SpriteFinder;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourceReloadListenerKeys;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.fabricmc.fabric.impl.client.indigo.renderer.IndigoRenderer;
-import net.fabricmc.fabric.impl.client.indigo.renderer.RenderMaterialImpl;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+import net.fabricmc.loader.api.SemanticVersion;
+import net.fabricmc.loader.api.Version;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.color.block.BlockColors;
@@ -74,12 +79,49 @@ public final class RenderUtil {
 			} catch (Exception e) {
 				ContinuityClient.LOGGER.error("Detected FREX but failed to load quad wrapper field", e);
 			}
-		} else if (FabricLoader.getInstance().isModLoaded("indium")) {
-			return quad -> ((link.infra.indium.renderer.RenderMaterialImpl) quad.material()).blendMode(0);
-		} else if (RendererAccess.INSTANCE.getRenderer() instanceof IndigoRenderer) {
-			return quad -> ((RenderMaterialImpl) quad.material()).blendMode(0);
+		} else {
+			Optional<ModContainer> optionalIndium = FabricLoader.getInstance().getModContainer("indium");
+			if (optionalIndium.isPresent()) {
+				BlendModeGetter getter = createLegacyIndiumBlendModeGetter(optionalIndium.get());
+				if (getter != null) {
+					return getter;
+				}
+			}
 		}
-		return quad -> BlendMode.DEFAULT;
+		return quad -> quad.material().blendMode();
+	}
+
+	@Nullable
+	private static BlendModeGetter createLegacyIndiumBlendModeGetter(ModContainer indium) {
+		SemanticVersion semver1_0_18;
+		try {
+			semver1_0_18 = SemanticVersion.parse("1.0.18");
+		} catch (Exception e) {
+			ContinuityClient.LOGGER.error("Failed to create semantic version", e);
+			return null;
+		}
+
+		Version indiumVersion = indium.getMetadata().getVersion();
+		if (indiumVersion.compareTo(semver1_0_18) >= 0) {
+			return null;
+		}
+
+		try {
+			Class<?> renderMaterialImplClass = Class.forName("link.infra.indium.renderer.RenderMaterialImpl");
+			Method blendModeMethod = renderMaterialImplClass.getMethod("blendMode", int.class);
+			return quad -> {
+				RenderMaterial material = quad.material();
+				try {
+					return (BlendMode) blendModeMethod.invoke(material, 0);
+				} catch (Exception e) {
+					//
+				}
+				return BlendMode.DEFAULT;
+			};
+		} catch (Exception e) {
+			ContinuityClient.LOGGER.error("Detected Indium older than 1.0.18 but failed to create legacy blend mode getter", e);
+			return null;
+		}
 	}
 
 	public static int getTintColor(BlockState state, BlockRenderView blockView, BlockPos pos, int tintIndex) {
