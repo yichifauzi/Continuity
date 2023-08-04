@@ -1,5 +1,7 @@
 package me.pepperbell.continuity.client.resource;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.google.common.collect.ImmutableMap;
 
 import me.pepperbell.continuity.client.model.CTMBakedModel;
@@ -29,7 +31,7 @@ public final class ModelWrappingHandler {
 		return builder.build();
 	}
 
-	public static BakedModel wrap(BakedModel model, Identifier modelId, boolean wrapCTM, boolean wrapEmissive) {
+	public static BakedModel wrap(@Nullable BakedModel model, Identifier modelId, boolean wrapCTM, boolean wrapEmissive) {
 		if (model != null && !model.isBuiltin() && !modelId.equals(ModelLoader.MISSING_ID)) {
 			if (wrapCTM) {
 				if (modelId instanceof ModelIdentifier) {
