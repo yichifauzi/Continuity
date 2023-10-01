@@ -136,6 +136,8 @@ public final class RenderUtil {
 		finder.blendMode(blendMode);
 		if (tintBlock != null) {
 			finder.ambientOcclusion(TriState.of(canHaveAO(tintBlock)));
+		} else {
+			finder.ambientOcclusion(TriState.TRUE);
 		}
 		return finder.find();
 	}
