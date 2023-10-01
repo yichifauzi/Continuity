@@ -7,7 +7,6 @@
     "AtlasLoaderMixin",
     "BakedModelManagerMixin",
     "BlockModelsMixin",
-    "ChunkRendererRegionMixin",
     "FallingBlockEntityRendererMixin",
     "IdentifierMixin",
     "LifecycledResourceManagerImplMixin",

@@ -51,7 +51,6 @@ dependencies {
 		exclude group: 'net.fabricmc.fabric-api'
 	}
 
-	modCompileOnly "maven.modrinth:sodium:${sodium_version}"
 	modCompileOnly "io.vram:canvas-fabric:${canvas_version}"
 }
 
