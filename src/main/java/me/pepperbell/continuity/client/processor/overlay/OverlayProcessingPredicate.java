@@ -4,6 +4,8 @@ import java.util.EnumSet;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
+import org.jetbrains.annotations.Nullable;
+
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
 import me.pepperbell.continuity.client.processor.BaseProcessingPredicate;
 import me.pepperbell.continuity.client.properties.BaseCTMProperties;
@@ -17,7 +19,7 @@ import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.biome.Biome;
 
 public class OverlayProcessingPredicate extends BaseProcessingPredicate {
-	public OverlayProcessingPredicate(EnumSet<Direction> faces, Predicate<Biome> biomePredicate, IntPredicate heightPredicate, Predicate<String> blockEntityNamePredicate) {
+	public OverlayProcessingPredicate(@Nullable EnumSet<Direction> faces, @Nullable Predicate<Biome> biomePredicate, @Nullable IntPredicate heightPredicate, @Nullable Predicate<String> blockEntityNamePredicate) {
 		super(faces, biomePredicate, heightPredicate, blockEntityNamePredicate);
 	}
 

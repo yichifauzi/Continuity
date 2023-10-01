@@ -31,7 +31,7 @@ public class BakedModelManagerReloadExtension {
 	}
 
 	public void setContext() {
-		SpriteLoaderLoadContext.THREAD_LOCAL.set(new SpriteLoaderInitContextImpl(ctmLoadingResultFuture.thenApply(CTMPropertiesLoader.LoadingResult::textureDependencies), wrapEmissiveModels));
+		SpriteLoaderLoadContext.THREAD_LOCAL.set(new SpriteLoaderInitContextImpl(ctmLoadingResultFuture.thenApply(CTMPropertiesLoader.LoadingResult::getTextureDependencies), wrapEmissiveModels));
 	}
 
 	public void clearContext() {
@@ -41,7 +41,7 @@ public class BakedModelManagerReloadExtension {
 	public void beforeBaking(Map<Identifier, SpriteAtlasManager.AtlasPreparation> preparations, ModelLoader modelLoader) {
 		CTMPropertiesLoader.LoadingResult result = ctmLoadingResultFuture.join();
 
-		List<QuadProcessors.ProcessorHolder> processorHolders = CTMPropertiesLoader.createProcessorHolders(result.containers(), spriteId -> {
+		List<QuadProcessors.ProcessorHolder> processorHolders = result.createProcessorHolders(spriteId -> {
 			SpriteAtlasManager.AtlasPreparation preparation = preparations.get(spriteId.getAtlasId());
 			Sprite sprite = preparation.getSprite(spriteId.getTextureId());
 			if (sprite != null) {
