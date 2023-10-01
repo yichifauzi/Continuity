@@ -2,6 +2,8 @@ package me.pepperbell.continuity.client.properties;
 
 import java.util.Properties;
 
+import org.jetbrains.annotations.Nullable;
+
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import me.pepperbell.continuity.client.ContinuityClient;
@@ -10,6 +12,7 @@ import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 
 public class CompactConnectingCTMProperties extends StandardConnectingCTMProperties {
+	@Nullable
 	protected Int2IntMap tileReplacementMap;
 
 	public CompactConnectingCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
@@ -58,6 +61,7 @@ public class CompactConnectingCTMProperties extends StandardConnectingCTMPropert
 		}
 	}
 
+	@Nullable
 	public Int2IntMap getTileReplacementMap() {
 		return tileReplacementMap;
 	}

@@ -44,9 +44,7 @@ public final class CTMPropertiesLoader {
 	}
 
 	public static LoadingResult loadAll(ResourceManager resourceManager) {
-		List<LoadingContainer<?>> containers = new ObjectArrayList<>();
-		Map<Identifier, Set<Identifier>> textureDependencies = new Object2ObjectOpenHashMap<>();
-		LoadingResult result = new LoadingResult(containers, textureDependencies);
+		LoadingData loadingData = new LoadingData();
 
 		int packPriority = 0;
 		Iterator<ResourcePack> iterator = resourceManager.streamResourcePacks().iterator();
@@ -54,23 +52,23 @@ public final class CTMPropertiesLoader {
 		invalidIdentifierState.enable();
 		while (iterator.hasNext()) {
 			ResourcePack pack = iterator.next();
-			loadAll(pack, packPriority, resourceManager, result);
+			loadAll(pack, packPriority, resourceManager, loadingData);
 			packPriority++;
 		}
 		invalidIdentifierState.disable();
-		containers.sort(Comparator.reverseOrder());
+		loadingData.containers.sort(Comparator.reverseOrder());
 
-		return result;
+		return new LoadingResult(loadingData.containers, loadingData.textureDependencies);
 	}
 
-	private static void loadAll(ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingResult result) {
+	private static void loadAll(ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingData loadingData) {
 		for (String namespace : pack.getNamespaces(ResourceType.CLIENT_RESOURCES)) {
 			pack.findResources(ResourceType.CLIENT_RESOURCES, namespace, "optifine/ctm", (id, inputSupplier) -> {
 				if (id.getPath().endsWith(".properties")) {
 					try (InputStream stream = inputSupplier.get()) {
 						Properties properties = new Properties();
 						properties.load(stream);
-						load(properties, id, pack, packPriority, resourceManager, result);
+						load(properties, id, pack, packPriority, resourceManager, loadingData);
 					} catch (Exception e) {
 						ContinuityClient.LOGGER.error("Failed to load CTM properties from file '" + id + "' in pack '" + pack.getName() + "'", e);
 					}
@@ -79,37 +77,34 @@ public final class CTMPropertiesLoader {
 		}
 	}
 
-	private static void load(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingResult result) {
+	private static void load(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingData loadingData) {
 		String method = properties.getProperty("method", "ctm").trim();
 		CTMLoader<?> loader = CTMLoaderRegistry.get().getLoader(method);
 		if (loader != null) {
-			load(loader, properties, id, pack, packPriority, resourceManager, method, result);
+			load(loader, properties, id, pack, packPriority, resourceManager, method, loadingData);
 		} else {
 			ContinuityClient.LOGGER.error("Unknown 'method' value '" + method + "' in file '" + id + "' in pack '" + pack.getName() + "'");
 		}
 	}
 
-	private static <T extends CTMProperties> void load(CTMLoader<T> loader, Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method, LoadingResult result) {
+	private static <T extends CTMProperties> void load(CTMLoader<T> loader, Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method, LoadingData loadingData) {
 		T ctmProperties = loader.getPropertiesFactory().createProperties(properties, id, pack, packPriority, resourceManager, method);
 		if (ctmProperties != null) {
 			LoadingContainer<T> container = new LoadingContainer<>(loader, ctmProperties);
-			result.containers().add(container);
+			loadingData.containers.add(container);
 			for (SpriteIdentifier spriteId : ctmProperties.getTextureDependencies()) {
-				Set<Identifier> atlasTextureDependencies = result.textureDependencies().computeIfAbsent(spriteId.getAtlasId(), id1 -> new ObjectOpenHashSet<>());
+				Set<Identifier> atlasTextureDependencies = loadingData.textureDependencies.computeIfAbsent(spriteId.getAtlasId(), id1 -> new ObjectOpenHashSet<>());
 				atlasTextureDependencies.add(spriteId.getTextureId());
 			}
 		}
 	}
 
-	public static List<QuadProcessors.ProcessorHolder> createProcessorHolders(List<LoadingContainer<?>> containers, Function<SpriteIdentifier, Sprite> textureGetter) {
-		List<QuadProcessors.ProcessorHolder> processorHolders = new ObjectArrayList<>();
-		for (LoadingContainer<?> container : containers) {
-			processorHolders.add(container.toProcessorHolder(textureGetter));
-		}
-		return processorHolders;
+	private static class LoadingData {
+		public final List<LoadingContainer<?>> containers = new ObjectArrayList<>();
+		public final Map<Identifier, Set<Identifier>> textureDependencies = new Object2ObjectOpenHashMap<>();
 	}
 
-	public record LoadingContainer<T extends CTMProperties>(CTMLoader<T> loader, T properties) implements Comparable<LoadingContainer<?>> {
+	private record LoadingContainer<T extends CTMProperties>(CTMLoader<T> loader, T properties) implements Comparable<LoadingContainer<?>> {
 		public QuadProcessors.ProcessorHolder toProcessorHolder(Function<SpriteIdentifier, Sprite> textureGetter) {
 			QuadProcessor processor = loader.getProcessorFactory().createProcessor(properties, textureGetter);
 			CachingPredicates predicates = loader.getPredicatesFactory().createPredicates(properties, textureGetter);
@@ -122,6 +117,25 @@ public final class CTMPropertiesLoader {
 		}
 	}
 
-	public record LoadingResult(List<LoadingContainer<?>> containers, Map<Identifier, Set<Identifier>> textureDependencies) {
+	public static class LoadingResult {
+		private final List<LoadingContainer<?>> containers;
+		private final Map<Identifier, Set<Identifier>> textureDependencies;
+
+		private LoadingResult(List<LoadingContainer<?>> containers, Map<Identifier, Set<Identifier>> textureDependencies) {
+			this.containers = containers;
+			this.textureDependencies = textureDependencies;
+		}
+
+		public List<QuadProcessors.ProcessorHolder> createProcessorHolders(Function<SpriteIdentifier, Sprite> textureGetter) {
+			List<QuadProcessors.ProcessorHolder> processorHolders = new ObjectArrayList<>();
+			for (LoadingContainer<?> container : containers) {
+				processorHolders.add(container.toProcessorHolder(textureGetter));
+			}
+			return processorHolders;
+		}
+
+		public Map<Identifier, Set<Identifier>> getTextureDependencies() {
+			return textureDependencies;
+		}
 	}
 }
