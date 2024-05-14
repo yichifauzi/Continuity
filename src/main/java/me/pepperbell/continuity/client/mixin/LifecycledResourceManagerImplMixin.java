@@ -18,7 +18,7 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 
 @Mixin(LifecycledResourceManagerImpl.class)
-public class LifecycledResourceManagerImplMixin implements LifecycledResourceManagerImplExtension {
+abstract class LifecycledResourceManagerImplMixin implements LifecycledResourceManagerImplExtension {
 	@Unique
 	private ResourceRedirectHandler continuity$redirectHandler;
 

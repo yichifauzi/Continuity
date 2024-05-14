@@ -21,8 +21,7 @@ import com.google.common.collect.Iterators;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import me.pepperbell.continuity.api.client.CTMProperties;
-import me.pepperbell.continuity.api.client.CTMPropertiesFactory;
+import me.pepperbell.continuity.api.client.CtmProperties;
 import me.pepperbell.continuity.client.ContinuityClient;
 import me.pepperbell.continuity.client.resource.ResourceRedirectHandler;
 import me.pepperbell.continuity.client.util.MathUtil;
@@ -32,7 +31,6 @@ import me.pepperbell.continuity.client.util.biome.BiomeHolderManager;
 import me.pepperbell.continuity.client.util.biome.BiomeSetPredicate;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.registry.Registries;
@@ -45,7 +43,7 @@ import net.minecraft.util.InvalidIdentifierException;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.biome.Biome;
 
-public class BaseCTMProperties implements CTMProperties {
+public class BaseCtmProperties implements CtmProperties {
 	public static final Identifier SPECIAL_SKIP_ID = ContinuityClient.asId("special/skip");
 	public static final Identifier SPECIAL_DEFAULT_ID = ContinuityClient.asId("special/default");
 	public static final SpriteIdentifier SPECIAL_SKIP_SPRITE_ID = TextureUtil.toSpriteId(SPECIAL_SKIP_ID);
@@ -54,7 +52,7 @@ public class BaseCTMProperties implements CTMProperties {
 	protected static final int DIRECTION_AMOUNT = Direction.values().length;
 
 	protected Properties properties;
-	protected Identifier id;
+	protected Identifier resourceId;
 	protected String packName;
 	protected int packPriority;
 	protected ResourceManager resourceManager;
@@ -80,9 +78,9 @@ public class BaseCTMProperties implements CTMProperties {
 	protected Set<SpriteIdentifier> textureDependencies;
 	protected List<SpriteIdentifier> spriteIds;
 
-	public BaseCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+	public BaseCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
 		this.properties = properties;
-		this.id = id;
+		this.resourceId = resourceId;
 		this.packName = pack.getName();
 		this.packPriority = packPriority;
 		this.resourceManager = resourceManager;
@@ -104,8 +102,8 @@ public class BaseCTMProperties implements CTMProperties {
 	1 this > o
 	 */
 	@Override
-	public int compareTo(@NotNull CTMProperties o) {
-		if (o instanceof BaseCTMProperties o1) {
+	public int compareTo(@NotNull CtmProperties o) {
+		if (o instanceof BaseCtmProperties o1) {
 			if (prioritized && !o1.prioritized) {
 				return 1;
 			}
@@ -116,7 +114,7 @@ public class BaseCTMProperties implements CTMProperties {
 			if (c != 0) {
 				return c;
 			}
-			return o1.getId().compareTo(getId());
+			return o1.getResourceId().compareTo(getResourceId());
 		}
 		return 0;
 	}
@@ -137,27 +135,27 @@ public class BaseCTMProperties implements CTMProperties {
 	}
 
 	protected void parseMatchTiles() {
-		matchTilesSet = PropertiesParsingHelper.parseMatchTiles(properties, "matchTiles", id, packName, ResourceRedirectHandler.get(resourceManager));
+		matchTilesSet = PropertiesParsingHelper.parseMatchTiles(properties, "matchTiles", resourceId, packName, ResourceRedirectHandler.get(resourceManager));
 		if (matchTilesSet != null && matchTilesSet.isEmpty()) {
 			valid = false;
 		}
 	}
 
 	protected void parseMatchBlocks() {
-		matchBlocksPredicate = PropertiesParsingHelper.parseBlockStates(properties, "matchBlocks", id, packName);
+		matchBlocksPredicate = PropertiesParsingHelper.parseBlockStates(properties, "matchBlocks", resourceId, packName);
 		if (matchBlocksPredicate == PropertiesParsingHelper.EMPTY_BLOCK_STATE_PREDICATE) {
 			valid = false;
 		}
 	}
 
 	protected void detectMatches() {
-		String baseName = FilenameUtils.getBaseName(id.getPath());
+		String baseName = FilenameUtils.getBaseName(resourceId.getPath());
 		if (matchBlocksPredicate == null) {
 			if (baseName.startsWith("block_")) {
 				try {
 					Identifier id = new Identifier(baseName.substring(6));
-					Block block = Registries.BLOCK.get(id);
-					if (block != Blocks.AIR) {
+					if (Registries.BLOCK.containsId(id)) {
+						Block block = Registries.BLOCK.get(id);
 						matchBlocksPredicate = state -> state.getBlock() == block;
 					}
 				} catch (InvalidIdentifierException e) {
@@ -169,7 +167,7 @@ public class BaseCTMProperties implements CTMProperties {
 
 	protected void validateMatches() {
 		if (matchTilesSet == null && matchBlocksPredicate == null) {
-			ContinuityClient.LOGGER.error("No tile or block matches provided in file '" + id + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.error("No tile or block matches provided in file '" + resourceId + "' in pack '" + packName + "'");
 			valid = false;
 		}
 	}
@@ -177,14 +175,14 @@ public class BaseCTMProperties implements CTMProperties {
 	protected void parseTiles() {
 		String tilesStr = properties.getProperty("tiles");
 		if (tilesStr == null) {
-			ContinuityClient.LOGGER.error("No 'tiles' value provided in file '" + id + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.error("No 'tiles' value provided in file '" + resourceId + "' in pack '" + packName + "'");
 			valid = false;
 			return;
 		}
 
 		String[] tileStrs = tilesStr.trim().split("[ ,]");
 		if (tileStrs.length != 0) {
-			String basePath = FilenameUtils.getPath(id.getPath());
+			String basePath = FilenameUtils.getPath(resourceId.getPath());
 			ImmutableList.Builder<Identifier> listBuilder = ImmutableList.builder();
 
 			for (int i = 0; i < tileStrs.length; i++) {
@@ -210,13 +208,13 @@ public class BaseCTMProperties implements CTMProperties {
 							if (min <= max) {
 								try {
 									for (int tile = min; tile <= max; tile++) {
-										listBuilder.add(new Identifier(id.getNamespace(), basePath + tile + ".png"));
+										listBuilder.add(new Identifier(resourceId.getNamespace(), basePath + tile + ".png"));
 									}
 								} catch (InvalidIdentifierException e) {
-									ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'", e);
+									ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'", e);
 								}
 							} else {
-								ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'");
+								ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'");
 							}
 							continue;
 						} catch (NumberFormatException e) {
@@ -256,7 +254,7 @@ public class BaseCTMProperties implements CTMProperties {
 							}
 
 							if (path.startsWith("optifine/")) {
-								namespace = id.getNamespace();
+								namespace = resourceId.getNamespace();
 							}
 						} else {
 							if (!path.contains("/")) {
@@ -273,11 +271,11 @@ public class BaseCTMProperties implements CTMProperties {
 						try {
 							listBuilder.add(new Identifier(namespace, path));
 						} catch (InvalidIdentifierException e) {
-							ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'", e);
+							ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'", e);
 						}
 					}
 				} else {
-					ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'");
+					ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'");
 				}
 			}
 
@@ -315,7 +313,7 @@ public class BaseCTMProperties implements CTMProperties {
 					try {
 						faces.add(Direction.valueOf(faceStr1));
 					} catch (IllegalArgumentException e) {
-						ContinuityClient.LOGGER.warn("Unknown 'faces' element '" + faceStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'");
+						ContinuityClient.LOGGER.warn("Unknown 'faces' element '" + faceStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'");
 					}
 				}
 			}
@@ -358,7 +356,7 @@ public class BaseCTMProperties implements CTMProperties {
 						Identifier biomeId = new Identifier(biomeStr.toLowerCase(Locale.ROOT));
 						biomeHolderSet.add(BiomeHolderManager.getOrCreateHolder(biomeId));
 					} catch (InvalidIdentifierException e) {
-						ContinuityClient.LOGGER.warn("Invalid 'biomes' element '" + biomeStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'", e);
+						ContinuityClient.LOGGER.warn("Invalid 'biomes' element '" + biomeStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'", e);
 					}
 				}
 
@@ -448,7 +446,7 @@ public class BaseCTMProperties implements CTMProperties {
 						}
 					}
 				}
-				ContinuityClient.LOGGER.warn("Invalid 'heights' element '" + heightStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'");
+				ContinuityClient.LOGGER.warn("Invalid 'heights' element '" + heightStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'");
 			}
 
 			if (!predicateList.isEmpty()) {
@@ -482,7 +480,7 @@ public class BaseCTMProperties implements CTMProperties {
 					try {
 						min = Integer.parseInt(minHeightStr.trim());
 					} catch (NumberFormatException e) {
-						ContinuityClient.LOGGER.warn("Invalid 'minHeight' value '" + minHeightStr + "' in file '" + id + "' in pack '" + packName + "'");
+						ContinuityClient.LOGGER.warn("Invalid 'minHeight' value '" + minHeightStr + "' in file '" + resourceId + "' in pack '" + packName + "'");
 						hasMinHeight = false;
 					}
 				}
@@ -490,7 +488,7 @@ public class BaseCTMProperties implements CTMProperties {
 					try {
 						max = Integer.parseInt(maxHeightStr.trim());
 					} catch (NumberFormatException e) {
-						ContinuityClient.LOGGER.warn("Invalid 'maxHeight' value '" + minHeightStr + "' in file '" + id + "' in pack '" + packName + "'");
+						ContinuityClient.LOGGER.warn("Invalid 'maxHeight' value '" + minHeightStr + "' in file '" + resourceId + "' in pack '" + packName + "'");
 						hasMaxHeight = false;
 					}
 				}
@@ -588,7 +586,7 @@ public class BaseCTMProperties implements CTMProperties {
 					try {
 						resourceId = new Identifier(resourceStr);
 					} catch (InvalidIdentifierException e) {
-						ContinuityClient.LOGGER.warn("Invalid resource '" + resourceStr + "' in 'resourceCondition' element '" + conditionStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'", e);
+						ContinuityClient.LOGGER.warn("Invalid resource '" + resourceStr + "' in 'resourceCondition' element '" + conditionStr + "' at index " + i + " in file '" + this.resourceId + "' in pack '" + packName + "'", e);
 						continue;
 					}
 
@@ -612,10 +610,10 @@ public class BaseCTMProperties implements CTMProperties {
 							break;
 						}
 					} else {
-						ContinuityClient.LOGGER.warn("Unknown pack '" + packStr + "' in 'resourceCondition' element '" + conditionStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'");
+						ContinuityClient.LOGGER.warn("Unknown pack '" + packStr + "' in 'resourceCondition' element '" + conditionStr + "' at index " + i + " in file '" + this.resourceId + "' in pack '" + packName + "'");
 					}
 				} else {
-					ContinuityClient.LOGGER.warn("Invalid 'resourceCondition' element '" + conditionStr + "' at index " + i + " in file '" + id + "' in pack '" + packName + "'");
+					ContinuityClient.LOGGER.warn("Invalid 'resourceCondition' element '" + conditionStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'");
 				}
 			}
 		}
@@ -664,8 +662,8 @@ public class BaseCTMProperties implements CTMProperties {
 		return properties;
 	}
 
-	public Identifier getId() {
-		return id;
+	public Identifier getResourceId() {
+		return resourceId;
 	}
 
 	public String getPackName() {
@@ -725,9 +723,9 @@ public class BaseCTMProperties implements CTMProperties {
 		return spriteIds;
 	}
 
-	public static <T extends BaseCTMProperties> CTMPropertiesFactory<T> wrapFactory(CTMPropertiesFactory<T> factory) {
-		return (properties, id, pack, packPriority, resourceManager, method) -> {
-			T ctmProperties = factory.createProperties(properties, id, pack, packPriority, resourceManager, method);
+	public static <T extends BaseCtmProperties> Factory<T> wrapFactory(Factory<T> factory) {
+		return (properties, resourceId, pack, packPriority, resourceManager, method) -> {
+			T ctmProperties = factory.createProperties(properties, resourceId, pack, packPriority, resourceManager, method);
 			if (ctmProperties == null) {
 				return null;
 			}

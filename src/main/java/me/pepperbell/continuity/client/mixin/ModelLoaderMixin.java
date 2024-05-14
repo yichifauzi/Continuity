@@ -1,36 +1,27 @@
 package me.pepperbell.continuity.client.mixin;
 
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
 import me.pepperbell.continuity.client.mixinterface.ModelLoaderExtension;
+import me.pepperbell.continuity.client.resource.ModelWrappingHandler;
 import net.minecraft.client.render.model.ModelLoader;
 
 @Mixin(ModelLoader.class)
-public class ModelLoaderMixin implements ModelLoaderExtension {
+abstract class ModelLoaderMixin implements ModelLoaderExtension {
 	@Unique
-	private boolean continuity$wrapCTM;
-
-	@Unique
-	private boolean continuity$wrapEmissive;
+	@Nullable
+	private ModelWrappingHandler continuity$modelWrappingHandler;
 
 	@Override
-	public boolean continuity$getWrapCTM() {
-		return continuity$wrapCTM;
+	@Nullable
+	public ModelWrappingHandler continuity$getModelWrappingHandler() {
+		return continuity$modelWrappingHandler;
 	}
 
 	@Override
-	public void continuity$setWrapCTM(boolean wrapCTM) {
-		this.continuity$wrapCTM = wrapCTM;
-	}
-
-	@Override
-	public boolean continuity$getWrapEmissive() {
-		return continuity$wrapEmissive;
-	}
-
-	@Override
-	public void continuity$setWrapEmissive(boolean wrapEmissive) {
-		this.continuity$wrapEmissive = wrapEmissive;
+	public void continuity$setModelWrappingHandler(@Nullable ModelWrappingHandler handler) {
+		this.continuity$modelWrappingHandler = handler;
 	}
 }

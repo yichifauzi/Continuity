@@ -3,39 +3,39 @@ package me.pepperbell.continuity.client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import me.pepperbell.continuity.api.client.CTMLoader;
-import me.pepperbell.continuity.api.client.CTMLoaderRegistry;
-import me.pepperbell.continuity.api.client.CTMProperties;
-import me.pepperbell.continuity.api.client.CTMPropertiesFactory;
-import me.pepperbell.continuity.api.client.CachingPredicatesFactory;
-import me.pepperbell.continuity.api.client.QuadProcessorFactory;
+import me.pepperbell.continuity.api.client.CachingPredicates;
+import me.pepperbell.continuity.api.client.CtmLoader;
+import me.pepperbell.continuity.api.client.CtmLoaderRegistry;
+import me.pepperbell.continuity.api.client.CtmProperties;
+import me.pepperbell.continuity.api.client.QuadProcessor;
 import me.pepperbell.continuity.client.processor.BaseCachingPredicates;
-import me.pepperbell.continuity.client.processor.CompactCTMQuadProcessor;
-import me.pepperbell.continuity.client.processor.HorizontalQuadProcessor;
-import me.pepperbell.continuity.client.processor.HorizontalVerticalQuadProcessor;
+import me.pepperbell.continuity.client.processor.CompactCtmQuadProcessor;
 import me.pepperbell.continuity.client.processor.ProcessingDataKeys;
 import me.pepperbell.continuity.client.processor.TopQuadProcessor;
-import me.pepperbell.continuity.client.processor.VerticalHorizontalQuadProcessor;
-import me.pepperbell.continuity.client.processor.VerticalQuadProcessor;
 import me.pepperbell.continuity.client.processor.overlay.SimpleOverlayQuadProcessor;
 import me.pepperbell.continuity.client.processor.overlay.StandardOverlayQuadProcessor;
-import me.pepperbell.continuity.client.processor.simple.CTMSpriteProvider;
+import me.pepperbell.continuity.client.processor.simple.CtmSpriteProvider;
 import me.pepperbell.continuity.client.processor.simple.FixedSpriteProvider;
+import me.pepperbell.continuity.client.processor.simple.HorizontalSpriteProvider;
+import me.pepperbell.continuity.client.processor.simple.HorizontalVerticalSpriteProvider;
 import me.pepperbell.continuity.client.processor.simple.RandomSpriteProvider;
 import me.pepperbell.continuity.client.processor.simple.RepeatSpriteProvider;
 import me.pepperbell.continuity.client.processor.simple.SimpleQuadProcessor;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
-import me.pepperbell.continuity.client.properties.CompactConnectingCTMProperties;
+import me.pepperbell.continuity.client.processor.simple.VerticalHorizontalSpriteProvider;
+import me.pepperbell.continuity.client.processor.simple.VerticalSpriteProvider;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
+import me.pepperbell.continuity.client.properties.CompactConnectingCtmProperties;
+import me.pepperbell.continuity.client.properties.ConnectingCtmProperties;
+import me.pepperbell.continuity.client.properties.OrientedConnectingCtmProperties;
 import me.pepperbell.continuity.client.properties.PropertiesParsingHelper;
-import me.pepperbell.continuity.client.properties.RandomCTMProperties;
-import me.pepperbell.continuity.client.properties.RepeatCTMProperties;
-import me.pepperbell.continuity.client.properties.StandardConnectingCTMProperties;
+import me.pepperbell.continuity.client.properties.RandomCtmProperties;
+import me.pepperbell.continuity.client.properties.RepeatCtmProperties;
 import me.pepperbell.continuity.client.properties.TileAmountValidator;
-import me.pepperbell.continuity.client.properties.overlay.BaseOverlayCTMProperties;
-import me.pepperbell.continuity.client.properties.overlay.RandomOverlayCTMProperties;
-import me.pepperbell.continuity.client.properties.overlay.RepeatOverlayCTMProperties;
-import me.pepperbell.continuity.client.properties.overlay.StandardConnectingOverlayCTMProperties;
-import me.pepperbell.continuity.client.properties.overlay.StandardOverlayCTMProperties;
+import me.pepperbell.continuity.client.properties.overlay.BaseOverlayCtmProperties;
+import me.pepperbell.continuity.client.properties.overlay.OrientedConnectingOverlayCtmProperties;
+import me.pepperbell.continuity.client.properties.overlay.RandomOverlayCtmProperties;
+import me.pepperbell.continuity.client.properties.overlay.RepeatOverlayCtmProperties;
+import me.pepperbell.continuity.client.properties.overlay.StandardOverlayCtmProperties;
 import me.pepperbell.continuity.client.resource.CustomBlockLayers;
 import me.pepperbell.continuity.client.util.RenderUtil;
 import me.pepperbell.continuity.client.util.biome.BiomeHolderManager;
@@ -67,184 +67,203 @@ public class ContinuityClient implements ClientModInitializer {
 			ResourceManagerHelper.registerBuiltinResourcePack(asId("glass_pane_culling_fix"), container, Text.translatable("resourcePack.continuity.glass_pane_culling_fix.name"), ResourcePackActivationType.NORMAL);
 		});
 
-		// Regular methods
+		CtmLoaderRegistry registry = CtmLoaderRegistry.get();
+		CtmLoader<?> loader;
 
-		/*
-		"ctm" "glass"
-		"ctm_compact"
-		"horizontal" "bookshelf"
-		"vertical"
-		"horizontal+vertical" "h+v"
-		"vertical+horizontal" "v+h"
-		"top"
-		"random"
-		"repeat"
-		"fixed"
-		 */
-
-		CTMLoaderRegistry registry = CTMLoaderRegistry.get();
-		CTMLoader<?> loader;
+		// Standard simple methods
 
 		loader = createLoader(
-				StandardConnectingCTMProperties::new,
+				OrientedConnectingCtmProperties::new,
 				new TileAmountValidator.AtLeast<>(47),
-				new SimpleQuadProcessor.Factory<>(new CTMSpriteProvider.Factory(true))
+				new SimpleQuadProcessor.Factory<>(new CtmSpriteProvider.Factory())
 		);
 		registry.registerLoader("ctm", loader);
 		registry.registerLoader("glass", loader);
 
 		loader = createLoader(
-				CompactConnectingCTMProperties::new,
+				CompactConnectingCtmProperties::new,
 				new TileAmountValidator.AtLeast<>(5),
-				new CompactCTMQuadProcessor.Factory(),
+				new CompactCtmQuadProcessor.Factory(),
 				false
 		);
 		registry.registerLoader("ctm_compact", loader);
 
 		loader = createLoader(
-				StandardConnectingCTMProperties::new,
+				OrientedConnectingCtmProperties::new,
 				new TileAmountValidator.Exactly<>(4),
-				new HorizontalQuadProcessor.Factory()
+				new SimpleQuadProcessor.Factory<>(new HorizontalSpriteProvider.Factory())
 		);
 		registry.registerLoader("horizontal", loader);
 		registry.registerLoader("bookshelf", loader);
 
 		loader = createLoader(
-				StandardConnectingCTMProperties::new,
+				OrientedConnectingCtmProperties::new,
 				new TileAmountValidator.Exactly<>(4),
-				new VerticalQuadProcessor.Factory()
+				new SimpleQuadProcessor.Factory<>(new VerticalSpriteProvider.Factory())
 		);
 		registry.registerLoader("vertical", loader);
 
 		loader = createLoader(
-				StandardConnectingCTMProperties::new,
+				OrientedConnectingCtmProperties::new,
 				new TileAmountValidator.Exactly<>(7),
-				new HorizontalVerticalQuadProcessor.Factory()
+				new SimpleQuadProcessor.Factory<>(new HorizontalVerticalSpriteProvider.Factory())
 		);
 		registry.registerLoader("horizontal+vertical", loader);
 		registry.registerLoader("h+v", loader);
 
 		loader = createLoader(
-				StandardConnectingCTMProperties::new,
+				OrientedConnectingCtmProperties::new,
 				new TileAmountValidator.Exactly<>(7),
-				new VerticalHorizontalQuadProcessor.Factory()
+				new SimpleQuadProcessor.Factory<>(new VerticalHorizontalSpriteProvider.Factory())
 		);
 		registry.registerLoader("vertical+horizontal", loader);
 		registry.registerLoader("v+h", loader);
 
 		loader = createLoader(
-				StandardConnectingCTMProperties::new,
+				ConnectingCtmProperties::new,
 				new TileAmountValidator.Exactly<>(1),
 				new TopQuadProcessor.Factory()
 		);
 		registry.registerLoader("top", loader);
 
 		loader = createLoader(
-				RandomCTMProperties::new,
+				RandomCtmProperties::new,
 				new SimpleQuadProcessor.Factory<>(new RandomSpriteProvider.Factory())
 		);
 		registry.registerLoader("random", loader);
 
 		loader = createLoader(
-				RepeatCTMProperties::new,
-				new RepeatCTMProperties.Validator<>(),
+				RepeatCtmProperties::new,
+				new RepeatCtmProperties.Validator<>(),
 				new SimpleQuadProcessor.Factory<>(new RepeatSpriteProvider.Factory())
 		);
 		registry.registerLoader("repeat", loader);
 
 		loader = createLoader(
-				BaseCTMProperties::new,
+				BaseCtmProperties::new,
 				new TileAmountValidator.Exactly<>(1),
 				new SimpleQuadProcessor.Factory<>(new FixedSpriteProvider.Factory())
 		);
 		registry.registerLoader("fixed", loader);
 
-		// Overlay methods
-
-		/*
-		"overlay"
-		"overlay_ctm"
-		"overlay_random"
-		"overlay_repeat"
-		"overlay_fixed"
-		 */
+		// Standard overlay methods
 
 		loader = createLoader(
-				StandardOverlayCTMProperties::new,
+				StandardOverlayCtmProperties::new,
 				new TileAmountValidator.AtLeast<>(17),
 				new StandardOverlayQuadProcessor.Factory()
 		);
 		registry.registerLoader("overlay", loader);
 
 		loader = createLoader(
-				StandardConnectingOverlayCTMProperties::new,
+				OrientedConnectingOverlayCtmProperties::new,
 				new TileAmountValidator.AtLeast<>(47),
-				new SimpleOverlayQuadProcessor.Factory<>(new CTMSpriteProvider.Factory(false))
+				new SimpleOverlayQuadProcessor.Factory<>(new CtmSpriteProvider.Factory())
 		);
 		registry.registerLoader("overlay_ctm", loader);
 
 		loader = createLoader(
-				RandomOverlayCTMProperties::new,
+				RandomOverlayCtmProperties::new,
 				new SimpleOverlayQuadProcessor.Factory<>(new RandomSpriteProvider.Factory())
 		);
 		registry.registerLoader("overlay_random", loader);
 
 		loader = createLoader(
-				RepeatOverlayCTMProperties::new,
-				new RepeatCTMProperties.Validator<>(),
+				RepeatOverlayCtmProperties::new,
+				new RepeatCtmProperties.Validator<>(),
 				new SimpleOverlayQuadProcessor.Factory<>(new RepeatSpriteProvider.Factory())
 		);
 		registry.registerLoader("overlay_repeat", loader);
 
 		loader = createLoader(
-				BaseOverlayCTMProperties::new,
+				BaseOverlayCtmProperties::new,
 				new TileAmountValidator.Exactly<>(1),
 				new SimpleOverlayQuadProcessor.Factory<>(new FixedSpriteProvider.Factory())
 		);
 		registry.registerLoader("overlay_fixed", loader);
+
+		// Custom methods
+
+		loader = createCustomLoader(
+				OrientedConnectingOverlayCtmProperties::new,
+				new TileAmountValidator.Exactly<>(4),
+				new SimpleOverlayQuadProcessor.Factory<>(new HorizontalSpriteProvider.Factory())
+		);
+		registry.registerLoader("overlay_horizontal", loader);
+
+		loader = createCustomLoader(
+				OrientedConnectingOverlayCtmProperties::new,
+				new TileAmountValidator.Exactly<>(4),
+				new SimpleOverlayQuadProcessor.Factory<>(new VerticalSpriteProvider.Factory())
+		);
+		registry.registerLoader("overlay_vertical", loader);
+
+		loader = createCustomLoader(
+				OrientedConnectingOverlayCtmProperties::new,
+				new TileAmountValidator.Exactly<>(7),
+				new SimpleOverlayQuadProcessor.Factory<>(new HorizontalVerticalSpriteProvider.Factory())
+		);
+		registry.registerLoader("overlay_horizontal+vertical", loader);
+		registry.registerLoader("overlay_h+v", loader);
+
+		loader = createCustomLoader(
+				OrientedConnectingOverlayCtmProperties::new,
+				new TileAmountValidator.Exactly<>(7),
+				new SimpleOverlayQuadProcessor.Factory<>(new VerticalHorizontalSpriteProvider.Factory())
+		);
+		registry.registerLoader("overlay_vertical+horizontal", loader);
+		registry.registerLoader("overlay_v+h", loader);
 	}
 
-	private static <T extends CTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, QuadProcessorFactory<T> processorFactory, CachingPredicatesFactory<T> predicatesFactory) {
-		return new CTMLoader<>() {
+	private static <T extends CtmProperties> CtmLoader<T> createLoader(CtmProperties.Factory<T> propertiesFactory, QuadProcessor.Factory<T> processorFactory, CachingPredicates.Factory<T> predicatesFactory) {
+		return new CtmLoader<>() {
 			@Override
-			public CTMPropertiesFactory<T> getPropertiesFactory() {
+			public CtmProperties.Factory<T> getPropertiesFactory() {
 				return propertiesFactory;
 			}
 
 			@Override
-			public QuadProcessorFactory<T> getProcessorFactory() {
+			public QuadProcessor.Factory<T> getProcessorFactory() {
 				return processorFactory;
 			}
 
 			@Override
-			public CachingPredicatesFactory<T> getPredicatesFactory() {
+			public CachingPredicates.Factory<T> getPredicatesFactory() {
 				return predicatesFactory;
 			}
 		};
 	}
 
-	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessorFactory<T> processorFactory, boolean isValidForMultipass) {
-		return createLoader(wrapWithOptifineOnlyCheck(TileAmountValidator.wrapFactory(BaseCTMProperties.wrapFactory(propertiesFactory), validator)), processorFactory, new BaseCachingPredicates.Factory<>(isValidForMultipass));
+	private static <T extends BaseCtmProperties> CtmLoader<T> createLoader(CtmProperties.Factory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessor.Factory<T> processorFactory, boolean isValidForMultipass) {
+		return createLoader(wrapWithOptifineOnlyCheck(TileAmountValidator.wrapFactory(BaseCtmProperties.wrapFactory(propertiesFactory), validator)), processorFactory, new BaseCachingPredicates.Factory<>(isValidForMultipass));
 	}
 
-	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessorFactory<T> processorFactory) {
+	private static <T extends BaseCtmProperties> CtmLoader<T> createLoader(CtmProperties.Factory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessor.Factory<T> processorFactory) {
 		return createLoader(propertiesFactory, validator, processorFactory, true);
 	}
 
-	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, QuadProcessorFactory<T> processorFactory, boolean isValidForMultipass) {
-		return createLoader(wrapWithOptifineOnlyCheck(BaseCTMProperties.wrapFactory(propertiesFactory)), processorFactory, new BaseCachingPredicates.Factory<>(isValidForMultipass));
+	private static <T extends BaseCtmProperties> CtmLoader<T> createLoader(CtmProperties.Factory<T> propertiesFactory, QuadProcessor.Factory<T> processorFactory, boolean isValidForMultipass) {
+		return createLoader(wrapWithOptifineOnlyCheck(BaseCtmProperties.wrapFactory(propertiesFactory)), processorFactory, new BaseCachingPredicates.Factory<>(isValidForMultipass));
 	}
 
-	private static <T extends BaseCTMProperties> CTMLoader<T> createLoader(CTMPropertiesFactory<T> propertiesFactory, QuadProcessorFactory<T> processorFactory) {
+	private static <T extends BaseCtmProperties> CtmLoader<T> createLoader(CtmProperties.Factory<T> propertiesFactory, QuadProcessor.Factory<T> processorFactory) {
 		return createLoader(propertiesFactory, processorFactory, true);
 	}
 
-	private static <T extends CTMProperties> CTMPropertiesFactory<T> wrapWithOptifineOnlyCheck(CTMPropertiesFactory<T> factory) {
-		return (properties, id, pack, packPriority, resourceManager, method) -> {
-			if (PropertiesParsingHelper.parseOptifineOnly(properties, id)) {
+	private static <T extends BaseCtmProperties> CtmLoader<T> createCustomLoader(CtmProperties.Factory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessor.Factory<T> processorFactory, boolean isValidForMultipass) {
+		return createLoader(TileAmountValidator.wrapFactory(BaseCtmProperties.wrapFactory(propertiesFactory), validator), processorFactory, new BaseCachingPredicates.Factory<>(isValidForMultipass));
+	}
+
+	private static <T extends BaseCtmProperties> CtmLoader<T> createCustomLoader(CtmProperties.Factory<T> propertiesFactory, TileAmountValidator<T> validator, QuadProcessor.Factory<T> processorFactory) {
+		return createCustomLoader(propertiesFactory, validator, processorFactory, true);
+	}
+
+	private static <T extends CtmProperties> CtmProperties.Factory<T> wrapWithOptifineOnlyCheck(CtmProperties.Factory<T> factory) {
+		return (properties, resourceId, pack, packPriority, resourceManager, method) -> {
+			if (PropertiesParsingHelper.parseOptifineOnly(properties, resourceId)) {
 				return null;
 			}
-			return factory.createProperties(properties, id, pack, packPriority, resourceManager, method);
+			return factory.createProperties(properties, resourceId, pack, packPriority, resourceManager, method);
 		};
 	}
 

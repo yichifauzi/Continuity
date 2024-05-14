@@ -12,7 +12,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 
 @Mixin(ChunkRendererRegion.class)
-public class ChunkRendererRegionMixin implements ChunkRendererRegionExtension {
+abstract class ChunkRendererRegionMixin implements ChunkRendererRegionExtension {
 	@Shadow
 	@Final
 	protected World world;

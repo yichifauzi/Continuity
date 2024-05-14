@@ -5,8 +5,9 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
+import me.pepperbell.continuity.client.processor.OrientationMode;
 import me.pepperbell.continuity.client.processor.Symmetry;
-import me.pepperbell.continuity.client.properties.RepeatCTMProperties;
+import me.pepperbell.continuity.client.properties.RepeatCtmProperties;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.Sprite;
@@ -20,18 +21,20 @@ public class RepeatSpriteProvider implements SpriteProvider {
 	protected int width;
 	protected int height;
 	protected Symmetry symmetry;
+	protected OrientationMode orientationMode;
 
-	public RepeatSpriteProvider(Sprite[] sprites, int width, int height, Symmetry symmetry) {
+	public RepeatSpriteProvider(Sprite[] sprites, int width, int height, Symmetry symmetry, OrientationMode orientationMode) {
 		this.sprites = sprites;
 		this.width = width;
 		this.height = height;
 		this.symmetry = symmetry;
+		this.orientationMode = orientationMode;
 	}
 
 	@Override
 	@Nullable
 	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
-		Direction face = symmetry.getActualFace(quad.lightFace());
+		Direction face = symmetry.apply(quad.lightFace());
 
 		int x = pos.getX();
 		int y = pos.getY();
@@ -74,6 +77,39 @@ public class RepeatSpriteProvider implements SpriteProvider {
 			}
 		}
 
+		switch (orientationMode.getOrientation(quad, state)) {
+			case 1 -> {
+				int temp = spriteX;
+				spriteX = -spriteY - 1;
+				spriteY = temp;
+			}
+			case 2 -> {
+				spriteX = -spriteX - 1;
+				spriteY = -spriteY - 1;
+			}
+			case 3 -> {
+				int temp = spriteX;
+				spriteX = spriteY;
+				spriteY = -temp - 1;
+			}
+			case 4 -> {
+				int temp = spriteX;
+				spriteX = spriteY;
+				spriteY = temp;
+			}
+			case 5 -> {
+				spriteY = -spriteY - 1;
+			}
+			case 6 -> {
+				int temp = spriteX;
+				spriteX = -spriteY - 1;
+				spriteY = -temp - 1;
+			}
+			case 7 -> {
+				spriteX = -spriteX - 1;
+			}
+		}
+
 		spriteX %= width;
 		if (spriteX < 0) {
 			spriteX += width;
@@ -86,14 +122,14 @@ public class RepeatSpriteProvider implements SpriteProvider {
 		return sprites[width * spriteY + spriteX];
 	}
 
-	public static class Factory implements SpriteProvider.Factory<RepeatCTMProperties> {
+	public static class Factory implements SpriteProvider.Factory<RepeatCtmProperties> {
 		@Override
-		public SpriteProvider createSpriteProvider(Sprite[] sprites, RepeatCTMProperties properties) {
-			return new RepeatSpriteProvider(sprites, properties.getWidth(), properties.getHeight(), properties.getSymmetry());
+		public SpriteProvider createSpriteProvider(Sprite[] sprites, RepeatCtmProperties properties) {
+			return new RepeatSpriteProvider(sprites, properties.getWidth(), properties.getHeight(), properties.getSymmetry(), properties.getOrientationMode());
 		}
 
 		@Override
-		public int getTextureAmount(RepeatCTMProperties properties) {
+		public int getTextureAmount(RepeatCtmProperties properties) {
 			return properties.getWidth() * properties.getHeight();
 		}
 	}

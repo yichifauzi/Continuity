@@ -4,14 +4,13 @@ import java.util.List;
 import java.util.function.Function;
 
 import me.pepperbell.continuity.api.client.QuadProcessor;
-import me.pepperbell.continuity.api.client.QuadProcessorFactory;
 import me.pepperbell.continuity.client.ContinuityClient;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
 import me.pepperbell.continuity.client.util.TextureUtil;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.SpriteIdentifier;
 
-public abstract class AbstractQuadProcessorFactory<T extends BaseCTMProperties> implements QuadProcessorFactory<T> {
+public abstract class AbstractQuadProcessorFactory<T extends BaseCtmProperties> implements QuadProcessor.Factory<T> {
 	@Override
 	public QuadProcessor createProcessor(T properties, Function<SpriteIdentifier, Sprite> textureGetter) {
 		int textureAmount = getTextureAmount(properties);
@@ -20,7 +19,7 @@ public abstract class AbstractQuadProcessorFactory<T extends BaseCTMProperties> 
 		int max = provided;
 
 		if (provided > textureAmount) {
-			ContinuityClient.LOGGER.warn("Method '" + properties.getMethod() + "' requires " + textureAmount + " tiles but " + provided + " were provided in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+			ContinuityClient.LOGGER.warn("Method '" + properties.getMethod() + "' requires " + textureAmount + " tiles but " + provided + " were provided in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 			max = textureAmount;
 		}
 
@@ -30,9 +29,9 @@ public abstract class AbstractQuadProcessorFactory<T extends BaseCTMProperties> 
 		for (int i = 0; i < max; i++) {
 			Sprite sprite;
 			SpriteIdentifier spriteId = spriteIds.get(i);
-			if (spriteId.equals(BaseCTMProperties.SPECIAL_SKIP_SPRITE_ID)) {
+			if (spriteId.equals(BaseCtmProperties.SPECIAL_SKIP_SPRITE_ID)) {
 				sprite = missingSprite;
-			} else if (spriteId.equals(BaseCTMProperties.SPECIAL_DEFAULT_SPRITE_ID)) {
+			} else if (spriteId.equals(BaseCtmProperties.SPECIAL_DEFAULT_SPRITE_ID)) {
 				sprite = supportsNullSprites ? null : missingSprite;
 			} else {
 				sprite = textureGetter.apply(spriteId);
@@ -41,7 +40,7 @@ public abstract class AbstractQuadProcessorFactory<T extends BaseCTMProperties> 
 		}
 
 		if (provided < textureAmount) {
-			ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires " + textureAmount + " tiles but only " + provided + " were provided in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+			ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires " + textureAmount + " tiles but only " + provided + " were provided in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 			for (int i = provided; i < textureAmount; i++) {
 				sprites[i] = missingSprite;
 			}

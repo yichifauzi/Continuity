@@ -3,7 +3,6 @@ package me.pepperbell.continuity.client.resource;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -17,9 +16,12 @@ public interface SpriteLoaderLoadContext {
 	@Nullable
 	EmissiveControl getEmissiveControl(Identifier atlasId);
 
-	AtomicReference<@Nullable Map<Identifier, Identifier>> getEmissiveIdMapHolder();
-
 	interface EmissiveControl {
+		@Nullable
+		Map<Identifier, Identifier> getEmissiveIdMap();
+
+		void setEmissiveIdMap(Map<Identifier, Identifier> emissiveIdMap);
+
 		void markHasEmissives();
 	}
 }

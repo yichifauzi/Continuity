@@ -1,15 +1,14 @@
 package me.pepperbell.continuity.client.model;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 
 import org.jetbrains.annotations.ApiStatus;
 
 import it.unimi.dsi.fastutil.Hash;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import me.pepperbell.continuity.api.client.CachingPredicates;
 import me.pepperbell.continuity.api.client.QuadProcessor;
 import net.minecraft.block.BlockState;
@@ -61,28 +60,48 @@ public final class QuadProcessors {
 	public record Slice(QuadProcessor[] processors, QuadProcessor[] multipassProcessors) {
 	}
 
-	private static class BlockStateKeyCache implements Function<BlockState, SpriteKeyCache> {
-		private final Map<BlockState, SpriteKeyCache> map = new Object2ObjectOpenHashMap<>();
+	private static class BlockStateKeyCache {
+		private final Reference2ReferenceOpenHashMap<BlockState, SpriteKeyCache> map = new Reference2ReferenceOpenHashMap<>();
 		private final StampedLock lock = new StampedLock();
 
-		@Override
 		public SpriteKeyCache apply(BlockState state) {
 			SpriteKeyCache innerCache;
+
+			long optimisticReadStamp = lock.tryOptimisticRead();
+			if (optimisticReadStamp != 0L) {
+				try {
+					// This map read could happen at the same time as a map write, so catch any exceptions.
+					// This is safe due to the map implementation used, which is guaranteed to not mutate the map during
+					// a read.
+					innerCache = map.get(state);
+					if (innerCache != null && lock.validate(optimisticReadStamp)) {
+						return innerCache;
+					}
+				} catch (Exception e) {
+					//
+				}
+			}
+
 			long readStamp = lock.readLock();
 			try {
 				innerCache = map.get(state);
 			} finally {
 				lock.unlockRead(readStamp);
 			}
+
 			if (innerCache == null) {
 				long writeStamp = lock.writeLock();
 				try {
-					innerCache = new SpriteKeyCache(state);
-					map.put(state, innerCache);
+					innerCache = map.get(state);
+					if (innerCache == null) {
+						innerCache = new SpriteKeyCache(state);
+						map.put(state, innerCache);
+					}
 				} finally {
 					lock.unlockWrite(writeStamp);
 				}
 			}
+
 			return innerCache;
 		}
 
@@ -97,7 +116,7 @@ public final class QuadProcessors {
 	}
 
 	private static class SpriteKeyCache implements Function<Sprite, Slice> {
-		private final Map<Sprite, Slice> map = new Object2ObjectOpenHashMap<>(4, Hash.FAST_LOAD_FACTOR);
+		private final Reference2ReferenceOpenHashMap<Sprite, Slice> map = new Reference2ReferenceOpenHashMap<>(4, Hash.FAST_LOAD_FACTOR);
 		private final StampedLock lock = new StampedLock();
 		private final BlockState state;
 
@@ -108,21 +127,42 @@ public final class QuadProcessors {
 		@Override
 		public Slice apply(Sprite sprite) {
 			Slice slice;
+
+			long optimisticReadStamp = lock.tryOptimisticRead();
+			if (optimisticReadStamp != 0L) {
+				try {
+					// This map read could happen at the same time as a map write, so catch any exceptions.
+					// This is safe due to the map implementation used, which is guaranteed to not mutate the map during
+					// a read.
+					slice = map.get(sprite);
+					if (slice != null && lock.validate(optimisticReadStamp)) {
+						return slice;
+					}
+				} catch (Exception e) {
+					//
+				}
+			}
+
 			long readStamp = lock.readLock();
 			try {
 				slice = map.get(sprite);
 			} finally {
 				lock.unlockRead(readStamp);
 			}
+
 			if (slice == null) {
 				long writeStamp = lock.writeLock();
 				try {
-					slice = computeSlice(state, sprite);
-					map.put(sprite, slice);
+					slice = map.get(sprite);
+					if (slice == null) {
+						slice = computeSlice(state, sprite);
+						map.put(sprite, slice);
+					}
 				} finally {
 					lock.unlockWrite(writeStamp);
 				}
 			}
+
 			return slice;
 		}
 

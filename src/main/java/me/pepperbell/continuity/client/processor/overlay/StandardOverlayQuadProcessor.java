@@ -18,7 +18,7 @@ import me.pepperbell.continuity.client.processor.DirectionMaps;
 import me.pepperbell.continuity.client.processor.ProcessingDataKeys;
 import me.pepperbell.continuity.client.processor.ProcessingPredicate;
 import me.pepperbell.continuity.client.properties.overlay.OverlayPropertiesSection;
-import me.pepperbell.continuity.client.properties.overlay.StandardOverlayCTMProperties;
+import me.pepperbell.continuity.client.properties.overlay.StandardOverlayCtmProperties;
 import me.pepperbell.continuity.client.util.QuadUtil;
 import me.pepperbell.continuity.client.util.RenderUtil;
 import me.pepperbell.continuity.client.util.SpriteCalculator;
@@ -72,7 +72,7 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 		if (emitter != null) {
 			context.addEmitterConsumer(emitter);
 		}
-		return ProcessingResult.CONTINUE;
+		return ProcessingResult.NEXT_PROCESSOR;
 	}
 
 	protected boolean appliesOverlay(BlockState other, BlockRenderView blockView, BlockState state, BlockPos pos, Direction face, Sprite quadSprite) {
@@ -379,20 +379,20 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 		}
 	}
 
-	public static class Factory extends AbstractQuadProcessorFactory<StandardOverlayCTMProperties> {
+	public static class Factory extends AbstractQuadProcessorFactory<StandardOverlayCtmProperties> {
 		@Override
-		public QuadProcessor createProcessor(StandardOverlayCTMProperties properties, Sprite[] sprites) {
+		public QuadProcessor createProcessor(StandardOverlayCtmProperties properties, Sprite[] sprites) {
 			OverlayPropertiesSection overlaySection = properties.getOverlayPropertiesSection();
 			return new StandardOverlayQuadProcessor(sprites, OverlayProcessingPredicate.fromProperties(properties), properties.getMatchTilesSet(), properties.getMatchBlocksPredicate(), properties.getConnectTilesSet(), properties.getConnectBlocksPredicate(), properties.getConnectionPredicate(), overlaySection.getTintIndex(), overlaySection.getTintBlock(), overlaySection.getLayer());
 		}
 
 		@Override
-		public int getTextureAmount(StandardOverlayCTMProperties properties) {
+		public int getTextureAmount(StandardOverlayCtmProperties properties) {
 			return 17;
 		}
 
 		@Override
-		public boolean supportsNullSprites(StandardOverlayCTMProperties properties) {
+		public boolean supportsNullSprites(StandardOverlayCtmProperties properties) {
 			return false;
 		}
 	}

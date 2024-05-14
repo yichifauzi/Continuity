@@ -1,11 +1,12 @@
 package me.pepperbell.continuity.client.mixinterface;
 
+import org.jetbrains.annotations.Nullable;
+
+import me.pepperbell.continuity.client.resource.ModelWrappingHandler;
+
 public interface ModelLoaderExtension {
-	boolean continuity$getWrapCTM();
+	@Nullable
+	ModelWrappingHandler continuity$getModelWrappingHandler();
 
-	void continuity$setWrapCTM(boolean wrapCTM);
-
-	boolean continuity$getWrapEmissive();
-
-	void continuity$setWrapEmissive(boolean wrapEmissive);
+	void continuity$setModelWrappingHandler(@Nullable ModelWrappingHandler handler);
 }

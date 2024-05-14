@@ -11,11 +11,10 @@ import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMaps;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import me.pepperbell.continuity.api.client.QuadProcessor;
-import me.pepperbell.continuity.api.client.QuadProcessorFactory;
 import me.pepperbell.continuity.client.ContinuityClient;
-import me.pepperbell.continuity.client.processor.simple.CTMSpriteProvider;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
-import me.pepperbell.continuity.client.properties.CompactConnectingCTMProperties;
+import me.pepperbell.continuity.client.processor.simple.CtmSpriteProvider;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
+import me.pepperbell.continuity.client.properties.CompactConnectingCtmProperties;
 import me.pepperbell.continuity.client.util.MathUtil;
 import me.pepperbell.continuity.client.util.QuadUtil;
 import me.pepperbell.continuity.client.util.TextureUtil;
@@ -32,7 +31,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 
-public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
+public class CompactCtmQuadProcessor extends AbstractQuadProcessor {
 	protected static final int[][] QUADRANT_INDEX_MAPS = new int[8][];
 	static {
 		int[][] map = QUADRANT_INDEX_MAPS;
@@ -55,31 +54,37 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 		ArrayUtils.shift(map[7], 1);
 	}
 
+	protected ConnectionPredicate connectionPredicate;
+	protected boolean innerSeams;
+	protected OrientationMode orientationMode;
 	@Nullable
 	protected Sprite[] replacementSprites;
 
-	public CompactCTMQuadProcessor(Sprite[] sprites, ProcessingPredicate processingPredicate, ConnectionPredicate connectionPredicate, boolean innerSeams, @Nullable Sprite[] replacementSprites) {
-		super(sprites, processingPredicate, connectionPredicate, innerSeams);
+	public CompactCtmQuadProcessor(Sprite[] sprites, ProcessingPredicate processingPredicate, ConnectionPredicate connectionPredicate, boolean innerSeams, OrientationMode orientationMode, @Nullable Sprite[] replacementSprites) {
+		super(sprites, processingPredicate);
+		this.connectionPredicate = connectionPredicate;
+		this.innerSeams = innerSeams;
+		this.orientationMode = orientationMode;
 		this.replacementSprites = replacementSprites;
 	}
 
 	@Override
 	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
-		int orientation = QuadUtil.getTextureOrientation(quad);
+		int orientation = orientationMode.getOrientation(quad, state);
 		Direction[] directions = DirectionMaps.getMap(quad.lightFace())[orientation];
 		BlockPos.Mutable mutablePos = context.getData(ProcessingDataKeys.MUTABLE_POS_KEY);
-		int connections = CTMSpriteProvider.getConnections(connectionPredicate, innerSeams, directions, mutablePos, blockView, state, pos, quad.lightFace(), sprite);
+		int connections = CtmSpriteProvider.getConnections(connectionPredicate, innerSeams, directions, mutablePos, blockView, state, pos, quad.lightFace(), sprite);
 
 		//
 
 		if (replacementSprites != null) {
-			int ctmIndex = CTMSpriteProvider.SPRITE_INDEX_MAP[connections];
+			int ctmIndex = CtmSpriteProvider.SPRITE_INDEX_MAP[connections];
 			Sprite replacementSprite = replacementSprites[ctmIndex];
 			if (replacementSprite != null) {
 				if (!TextureUtil.isMissingSprite(replacementSprite)) {
 					QuadUtil.interpolate(quad, sprite, replacementSprite);
 				}
-				return ProcessingResult.STOP;
+				return ProcessingResult.NEXT_PASS;
 			}
 		}
 
@@ -116,17 +121,17 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 
 		// Cannot split across U and V at the same time
 		if (uSplit01 & vSplit01 | uSplit12 & vSplit12 | uSplit23 & vSplit23 | uSplit30 & vSplit30) {
-			return ProcessingResult.CONTINUE;
+			return ProcessingResult.NEXT_PROCESSOR;
 		}
 
 		// Cannot split across U twice in a row
 		if (uSplit01 & uSplit12 | uSplit12 & uSplit23 | uSplit23 & uSplit30 | uSplit30 & uSplit01) {
-			return ProcessingResult.CONTINUE;
+			return ProcessingResult.NEXT_PROCESSOR;
 		}
 
 		// Cannot split across V twice in a row
 		if (vSplit01 & vSplit12 | vSplit12 & vSplit23 | vSplit23 & vSplit30 | vSplit30 & vSplit01) {
-			return ProcessingResult.CONTINUE;
+			return ProcessingResult.NEXT_PROCESSOR;
 		}
 
 		//
@@ -149,7 +154,7 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 
 			if (!(split01 | split12 | split23 | split30)) {
 				tryInterpolate(quad, sprite, spriteIndex0);
-				return ProcessingResult.ABORT_AND_RENDER_QUAD;
+				return ProcessingResult.STOP;
 			}
 
 			VertexContainer vertexContainer = context.getData(ProcessingDataKeys.VERTEX_CONTAINER_KEY);
@@ -341,7 +346,7 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 			}
 
 			context.markHasExtraQuads();
-			return ProcessingResult.ABORT_AND_CANCEL_QUAD;
+			return ProcessingResult.DISCARD;
 		} else if (uSplit | vSplit) {
 			boolean firstSplit;
 			boolean swapAB;
@@ -371,7 +376,7 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 
 			if (spriteIndexA == spriteIndexB) {
 				tryInterpolate(quad, sprite, spriteIndexA);
-				return ProcessingResult.ABORT_AND_RENDER_QUAD;
+				return ProcessingResult.STOP;
 			}
 
 			if (swapAB) {
@@ -422,7 +427,7 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 			}
 
 			context.markHasExtraQuads();
-			return ProcessingResult.ABORT_AND_CANCEL_QUAD;
+			return ProcessingResult.DISCARD;
 		} else {
 			int quadrant;
 			if ((uSignum0 + uSignum1 + uSignum2 + uSignum3) <= 0) {
@@ -441,7 +446,7 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 
 			int spriteIndex = getSpriteIndex(quadrant, connections);
 			tryInterpolate(quad, sprite, spriteIndex);
-			return ProcessingResult.ABORT_AND_RENDER_QUAD;
+			return ProcessingResult.STOP;
 		}
 	}
 
@@ -607,9 +612,9 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 	}
 
 	// TODO
-	public static class Factory implements QuadProcessorFactory<CompactConnectingCTMProperties> {
+	public static class Factory implements QuadProcessor.Factory<CompactConnectingCtmProperties> {
 		@Override
-		public QuadProcessor createProcessor(CompactConnectingCTMProperties properties, Function<SpriteIdentifier, Sprite> textureGetter) {
+		public QuadProcessor createProcessor(CompactConnectingCtmProperties properties, Function<SpriteIdentifier, Sprite> textureGetter) {
 			int textureAmount = getTextureAmount(properties);
 			List<SpriteIdentifier> spriteIds = properties.getSpriteIds();
 			int provided = spriteIds.size();
@@ -629,17 +634,17 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 						if (value < provided) {
 							replacementSprites[key] = textureGetter.apply(spriteIds.get(value));
 						} else {
-							ContinuityClient.LOGGER.warn("Cannot replace tile " + key + " with tile " + value + " as only " + provided + " tiles were provided in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+							ContinuityClient.LOGGER.warn("Cannot replace tile " + key + " with tile " + value + " as only " + provided + " tiles were provided in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 						}
 					} else {
-						ContinuityClient.LOGGER.warn("Cannot replace tile " + key + " as method '" + properties.getMethod() + "' only supports " + replacementTextureAmount + " replacement tiles in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+						ContinuityClient.LOGGER.warn("Cannot replace tile " + key + " as method '" + properties.getMethod() + "' only supports " + replacementTextureAmount + " replacement tiles in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 					}
 				}
 			}
 
 			if (provided > textureAmount) {
 				if (replacementSprites == null) {
-					ContinuityClient.LOGGER.warn("Method '" + properties.getMethod() + "' requires " + textureAmount + " tiles but " + provided + " were provided in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+					ContinuityClient.LOGGER.warn("Method '" + properties.getMethod() + "' requires " + textureAmount + " tiles but " + provided + " were provided in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 				}
 				max = textureAmount;
 			}
@@ -650,9 +655,9 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 			for (int i = 0; i < max; i++) {
 				Sprite sprite;
 				SpriteIdentifier spriteId = spriteIds.get(i);
-				if (spriteId.equals(BaseCTMProperties.SPECIAL_SKIP_SPRITE_ID)) {
+				if (spriteId.equals(BaseCtmProperties.SPECIAL_SKIP_SPRITE_ID)) {
 					sprite = missingSprite;
-				} else if (spriteId.equals(BaseCTMProperties.SPECIAL_DEFAULT_SPRITE_ID)) {
+				} else if (spriteId.equals(BaseCtmProperties.SPECIAL_DEFAULT_SPRITE_ID)) {
 					sprite = supportsNullSprites ? null : missingSprite;
 				} else {
 					sprite = textureGetter.apply(spriteId);
@@ -661,7 +666,7 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 			}
 
 			if (provided < textureAmount) {
-				ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires at least " + textureAmount + " tiles but only " + provided + " were provided in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+				ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires at least " + textureAmount + " tiles but only " + provided + " were provided in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 				for (int i = provided; i < textureAmount; i++) {
 					sprites[i] = missingSprite;
 				}
@@ -670,19 +675,19 @@ public class CompactCTMQuadProcessor extends ConnectingQuadProcessor {
 			return createProcessor(properties, sprites, replacementSprites);
 		}
 
-		public QuadProcessor createProcessor(CompactConnectingCTMProperties properties, Sprite[] sprites, @Nullable Sprite[] replacementSprites) {
-			return new CompactCTMQuadProcessor(sprites, BaseProcessingPredicate.fromProperties(properties), properties.getConnectionPredicate(), properties.getInnerSeams(), replacementSprites);
+		public QuadProcessor createProcessor(CompactConnectingCtmProperties properties, Sprite[] sprites, @Nullable Sprite[] replacementSprites) {
+			return new CompactCtmQuadProcessor(sprites, BaseProcessingPredicate.fromProperties(properties), properties.getConnectionPredicate(), properties.getInnerSeams(), properties.getOrientationMode(), replacementSprites);
 		}
 
-		public int getTextureAmount(CompactConnectingCTMProperties properties) {
+		public int getTextureAmount(CompactConnectingCtmProperties properties) {
 			return 5;
 		}
 
-		public int getReplacementTextureAmount(CompactConnectingCTMProperties properties) {
+		public int getReplacementTextureAmount(CompactConnectingCtmProperties properties) {
 			return 47;
 		}
 
-		public boolean supportsNullSprites(CompactConnectingCTMProperties properties) {
+		public boolean supportsNullSprites(CompactConnectingCtmProperties properties) {
 			return false;
 		}
 	}

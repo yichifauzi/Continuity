@@ -12,7 +12,7 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
 
 @Mixin(RenderLayers.class)
-public class RenderLayersMixin {
+abstract class RenderLayersMixin {
 	@Inject(method = "getBlockLayer(Lnet/minecraft/block/BlockState;)Lnet/minecraft/client/render/RenderLayer;", at = @At("HEAD"), cancellable = true)
 	private static void continuity$onHeadGetBlockLayer(BlockState state, CallbackInfoReturnable<RenderLayer> cir) {
 		if (!CustomBlockLayers.isEmpty() && ContinuityConfig.INSTANCE.customBlockLayers.get()) {

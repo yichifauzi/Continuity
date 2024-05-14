@@ -17,13 +17,13 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 
-public class CTMBakedModel extends ForwardingBakedModel {
+public class CtmBakedModel extends ForwardingBakedModel {
 	public static final int PASSES = 4;
 
 	protected final BlockState defaultState;
 	protected volatile Function<Sprite, QuadProcessors.Slice> defaultSliceFunc;
 
-	public CTMBakedModel(BakedModel wrapped, BlockState defaultState) {
+	public CtmBakedModel(BakedModel wrapped, BlockState defaultState) {
 		this.wrapped = wrapped;
 		this.defaultState = defaultState;
 	}
@@ -41,7 +41,7 @@ public class CTMBakedModel extends ForwardingBakedModel {
 			return;
 		}
 
-		CTMQuadTransform quadTransform = container.ctmQuadTransform;
+		CtmQuadTransform quadTransform = container.ctmQuadTransform;
 		if (quadTransform.isActive()) {
 			super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
 			return;
@@ -59,6 +59,9 @@ public class CTMBakedModel extends ForwardingBakedModel {
 
 	@Override
 	public boolean isVanillaAdapter() {
+		if (!ContinuityConfig.INSTANCE.connectedTextures.get()) {
+			return super.isVanillaAdapter();
+		}
 		return false;
 	}
 
@@ -69,8 +72,8 @@ public class CTMBakedModel extends ForwardingBakedModel {
 				synchronized (this) {
 					sliceFunc = defaultSliceFunc;
 					if (sliceFunc == null) {
-						defaultSliceFunc = QuadProcessors.getCache(state);
-						sliceFunc = defaultSliceFunc;
+						sliceFunc = QuadProcessors.getCache(state);
+						defaultSliceFunc = sliceFunc;
 					}
 				}
 			}
@@ -79,7 +82,7 @@ public class CTMBakedModel extends ForwardingBakedModel {
 		return QuadProcessors.getCache(state);
 	}
 
-	protected static class CTMQuadTransform implements RenderContext.QuadTransform {
+	protected static class CtmQuadTransform implements RenderContext.QuadTransform {
 		protected final ProcessingContextImpl processingContext = new ProcessingContextImpl();
 		protected final CullingCache cullingCache = new CullingCache();
 
@@ -114,17 +117,17 @@ public class CTMBakedModel extends ForwardingBakedModel {
 			QuadProcessor[] processors = pass == 0 ? slice.processors() : slice.multipassProcessors();
 			for (QuadProcessor processor : processors) {
 				QuadProcessor.ProcessingResult result = processor.processQuad(quad, sprite, blockView, state, pos, randomSupplier, pass, processingContext);
-				if (result == QuadProcessor.ProcessingResult.CONTINUE) {
+				if (result == QuadProcessor.ProcessingResult.NEXT_PROCESSOR) {
 					continue;
 				}
-				if (result == QuadProcessor.ProcessingResult.STOP) {
+				if (result == QuadProcessor.ProcessingResult.NEXT_PASS) {
 					return null;
 				}
-				if (result == QuadProcessor.ProcessingResult.ABORT_AND_CANCEL_QUAD) {
-					return false;
-				}
-				if (result == QuadProcessor.ProcessingResult.ABORT_AND_RENDER_QUAD) {
+				if (result == QuadProcessor.ProcessingResult.STOP) {
 					return true;
+				}
+				if (result == QuadProcessor.ProcessingResult.DISCARD) {
+					return false;
 				}
 			}
 			return true;

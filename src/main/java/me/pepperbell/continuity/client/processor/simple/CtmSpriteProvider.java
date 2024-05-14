@@ -7,8 +7,9 @@ import org.jetbrains.annotations.Nullable;
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
 import me.pepperbell.continuity.client.processor.ConnectionPredicate;
 import me.pepperbell.continuity.client.processor.DirectionMaps;
+import me.pepperbell.continuity.client.processor.OrientationMode;
 import me.pepperbell.continuity.client.processor.ProcessingDataKeys;
-import me.pepperbell.continuity.client.properties.StandardConnectingCTMProperties;
+import me.pepperbell.continuity.client.properties.OrientedConnectingCtmProperties;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.Sprite;
@@ -17,7 +18,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 
-public class CTMSpriteProvider implements SpriteProvider {
+public class CtmSpriteProvider implements SpriteProvider {
 	// Indices for this array are formed from these bit values:
 	// 128 64  32
 	// 1   *   16
@@ -44,19 +45,19 @@ public class CTMSpriteProvider implements SpriteProvider {
 	protected Sprite[] sprites;
 	protected ConnectionPredicate connectionPredicate;
 	protected boolean innerSeams;
-	protected boolean useTextureOrientation;
+	protected OrientationMode orientationMode;
 
-	public CTMSpriteProvider(Sprite[] sprites, ConnectionPredicate connectionPredicate, boolean innerSeams, boolean useTextureOrientation) {
+	public CtmSpriteProvider(Sprite[] sprites, ConnectionPredicate connectionPredicate, boolean innerSeams, OrientationMode orientationMode) {
 		this.sprites = sprites;
 		this.connectionPredicate = connectionPredicate;
 		this.innerSeams = innerSeams;
-		this.useTextureOrientation = useTextureOrientation;
+		this.orientationMode = orientationMode;
 	}
 
 	@Override
 	@Nullable
 	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
-		Direction[] directions = useTextureOrientation ? DirectionMaps.getDirections(quad) : DirectionMaps.getMap(quad.lightFace())[0];
+		Direction[] directions = DirectionMaps.getDirections(orientationMode, quad, state);
 		BlockPos.Mutable mutablePos = dataProvider.getData(ProcessingDataKeys.MUTABLE_POS_KEY);
 		int connections = getConnections(connectionPredicate, innerSeams, directions, mutablePos, blockView, state, pos, quad.lightFace(), sprite);
 		return sprites[SPRITE_INDEX_MAP[connections]];
@@ -83,20 +84,14 @@ public class CTMSpriteProvider implements SpriteProvider {
 		return connections;
 	}
 
-	public static class Factory implements SpriteProvider.Factory<StandardConnectingCTMProperties> {
-		protected boolean useTextureOrientation;
-
-		public Factory(boolean useTextureOrientation) {
-			this.useTextureOrientation = useTextureOrientation;
+	public static class Factory implements SpriteProvider.Factory<OrientedConnectingCtmProperties> {
+		@Override
+		public SpriteProvider createSpriteProvider(Sprite[] sprites, OrientedConnectingCtmProperties properties) {
+			return new CtmSpriteProvider(sprites, properties.getConnectionPredicate(), properties.getInnerSeams(), properties.getOrientationMode());
 		}
 
 		@Override
-		public SpriteProvider createSpriteProvider(Sprite[] sprites, StandardConnectingCTMProperties properties) {
-			return new CTMSpriteProvider(sprites, properties.getConnectionPredicate(), properties.getInnerSeams(), useTextureOrientation);
-		}
-
-		@Override
-		public int getTextureAmount(StandardConnectingCTMProperties properties) {
+		public int getTextureAmount(OrientedConnectingCtmProperties properties) {
 			return 47;
 		}
 	}

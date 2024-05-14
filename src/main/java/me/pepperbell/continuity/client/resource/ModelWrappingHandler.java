@@ -4,7 +4,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.ImmutableMap;
 
-import me.pepperbell.continuity.client.model.CTMBakedModel;
+import me.pepperbell.continuity.client.model.CtmBakedModel;
 import me.pepperbell.continuity.client.model.EmissiveBakedModel;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -15,8 +15,24 @@ import net.minecraft.client.util.ModelIdentifier;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 
-public final class ModelWrappingHandler {
-	private static final ImmutableMap<ModelIdentifier, BlockState> BLOCK_STATE_MODEL_IDS = createBlockStateModelIdMap();
+public class ModelWrappingHandler {
+	private final boolean wrapCtm;
+	private final boolean wrapEmissive;
+	private final ImmutableMap<ModelIdentifier, BlockState> blockStateModelIds;
+
+	private ModelWrappingHandler(boolean wrapCtm, boolean wrapEmissive) {
+		this.wrapCtm = wrapCtm;
+		this.wrapEmissive = wrapEmissive;
+		blockStateModelIds = createBlockStateModelIdMap();
+	}
+
+	@Nullable
+	public static ModelWrappingHandler create(boolean wrapCtm, boolean wrapEmissive) {
+		if (!wrapCtm && !wrapEmissive) {
+			return null;
+		}
+		return new ModelWrappingHandler(wrapCtm, wrapEmissive);
+	}
 
 	private static ImmutableMap<ModelIdentifier, BlockState> createBlockStateModelIdMap() {
 		ImmutableMap.Builder<ModelIdentifier, BlockState> builder = ImmutableMap.builder();
@@ -31,13 +47,13 @@ public final class ModelWrappingHandler {
 		return builder.build();
 	}
 
-	public static BakedModel wrap(@Nullable BakedModel model, Identifier modelId, boolean wrapCTM, boolean wrapEmissive) {
+	public BakedModel wrap(@Nullable BakedModel model, Identifier modelId) {
 		if (model != null && !model.isBuiltin() && !modelId.equals(ModelLoader.MISSING_ID)) {
-			if (wrapCTM) {
+			if (wrapCtm) {
 				if (modelId instanceof ModelIdentifier) {
-					BlockState state = BLOCK_STATE_MODEL_IDS.get(modelId);
+					BlockState state = blockStateModelIds.get(modelId);
 					if (state != null) {
-						model = new CTMBakedModel(model, state);
+						model = new CtmBakedModel(model, state);
 					}
 				}
 			}

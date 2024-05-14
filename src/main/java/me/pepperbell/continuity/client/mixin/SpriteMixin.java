@@ -8,7 +8,7 @@ import me.pepperbell.continuity.client.mixinterface.SpriteExtension;
 import net.minecraft.client.texture.Sprite;
 
 @Mixin(Sprite.class)
-public class SpriteMixin implements SpriteExtension {
+abstract class SpriteMixin implements SpriteExtension {
 	@Unique
 	private Sprite continuity$emissiveSprite;
 

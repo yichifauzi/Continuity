@@ -29,12 +29,12 @@ import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 
 @Mixin(AtlasLoader.class)
-public class AtlasLoaderMixin {
+abstract class AtlasLoaderMixin {
 	@ModifyVariable(method = "<init>(Ljava/util/List;)V", at = @At(value = "LOAD", ordinal = 0), argsOnly = true, ordinal = 0)
 	private List<AtlasSource> continuity$modifySources(List<AtlasSource> sources) {
 		AtlasLoaderInitContext context = AtlasLoaderInitContext.THREAD_LOCAL.get();
 		if (context != null) {
-			Set<Identifier> extraIds = context.getExtraIdsFuture().join();
+			Set<Identifier> extraIds = context.getExtraIds();
 			if (extraIds != null && !extraIds.isEmpty()) {
 				List<AtlasSource> extraSources = new ObjectArrayList<>();
 				for (Identifier extraId : extraIds) {
@@ -59,7 +59,7 @@ public class AtlasLoaderMixin {
 		if (context != null) {
 			String emissiveSuffix = EmissiveSuffixLoader.getEmissiveSuffix();
 			if (emissiveSuffix != null) {
-				Map<Identifier, AtlasSource.SpriteRegion> extraSuppliers = new Object2ObjectOpenHashMap<>();
+				Map<Identifier, AtlasSource.SpriteRegion> emissiveSuppliers = new Object2ObjectOpenHashMap<>();
 				Map<Identifier, Identifier> emissiveIdMap = new Object2ObjectOpenHashMap<>();
 				suppliers.forEach((id, supplier) -> {
 					if (!id.getPath().endsWith(emissiveSuffix)) {
@@ -69,7 +69,7 @@ public class AtlasLoaderMixin {
 							Optional<Resource> optionalResource = resourceManager.getResource(emissiveLocation);
 							if (optionalResource.isPresent()) {
 								Resource resource = optionalResource.get();
-								extraSuppliers.put(emissiveId, () -> SpriteLoader.load(emissiveId, resource));
+								emissiveSuppliers.put(emissiveId, () -> SpriteLoader.load(emissiveId, resource));
 								emissiveIdMap.put(id, emissiveId);
 							}
 						} else {
@@ -77,7 +77,7 @@ public class AtlasLoaderMixin {
 						}
 					}
 				});
-				suppliers.putAll(extraSuppliers);
+				suppliers.putAll(emissiveSuppliers);
 				if (!emissiveIdMap.isEmpty()) {
 					context.setEmissiveIdMap(emissiveIdMap);
 				}
