@@ -112,6 +112,9 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 
 	@Override
 	public boolean isVanillaAdapter() {
+		if (!ContinuityConfig.INSTANCE.emissiveTextures.get()) {
+			return super.isVanillaAdapter();
+		}
 		return false;
 	}
 

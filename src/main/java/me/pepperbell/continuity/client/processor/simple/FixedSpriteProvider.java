@@ -5,7 +5,7 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.Sprite;
@@ -26,14 +26,14 @@ public class FixedSpriteProvider implements SpriteProvider {
 		return this.sprite;
 	}
 
-	public static class Factory implements SpriteProvider.Factory<BaseCTMProperties> {
+	public static class Factory implements SpriteProvider.Factory<BaseCtmProperties> {
 		@Override
-		public SpriteProvider createSpriteProvider(Sprite[] sprites, BaseCTMProperties properties) {
+		public SpriteProvider createSpriteProvider(Sprite[] sprites, BaseCtmProperties properties) {
 			return new FixedSpriteProvider(sprites[0]);
 		}
 
 		@Override
-		public int getTextureAmount(BaseCTMProperties properties) {
+		public int getTextureAmount(BaseCtmProperties properties) {
 			return 1;
 		}
 	}

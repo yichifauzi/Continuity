@@ -14,10 +14,10 @@ import org.jetbrains.annotations.NotNull;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import me.pepperbell.continuity.api.client.CTMLoader;
-import me.pepperbell.continuity.api.client.CTMLoaderRegistry;
-import me.pepperbell.continuity.api.client.CTMProperties;
 import me.pepperbell.continuity.api.client.CachingPredicates;
+import me.pepperbell.continuity.api.client.CtmLoader;
+import me.pepperbell.continuity.api.client.CtmLoaderRegistry;
+import me.pepperbell.continuity.api.client.CtmProperties;
 import me.pepperbell.continuity.api.client.QuadProcessor;
 import me.pepperbell.continuity.client.ContinuityClient;
 import me.pepperbell.continuity.client.model.QuadProcessors;
@@ -30,7 +30,15 @@ import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 
-public final class CTMPropertiesLoader {
+public class CtmPropertiesLoader {
+	private final ResourceManager resourceManager;
+	private final List<LoadingContainer<?>> containers = new ObjectArrayList<>();
+	private final Map<Identifier, Set<Identifier>> textureDependencies = new Object2ObjectOpenHashMap<>();
+
+	private CtmPropertiesLoader(ResourceManager resourceManager) {
+		this.resourceManager = resourceManager;
+	}
+
 	public static LoadingResult loadAllWithState(ResourceManager resourceManager) {
 		// TODO: move these to the very beginning of resource reload
 		BiomeHolderManager.clearCache();
@@ -44,67 +52,65 @@ public final class CTMPropertiesLoader {
 	}
 
 	public static LoadingResult loadAll(ResourceManager resourceManager) {
-		LoadingData loadingData = new LoadingData();
+		return new CtmPropertiesLoader(resourceManager).loadAll();
+	}
 
+	private LoadingResult loadAll() {
 		int packPriority = 0;
 		Iterator<ResourcePack> iterator = resourceManager.streamResourcePacks().iterator();
 		BooleanState invalidIdentifierState = InvalidIdentifierStateHolder.get();
 		invalidIdentifierState.enable();
 		while (iterator.hasNext()) {
 			ResourcePack pack = iterator.next();
-			loadAll(pack, packPriority, resourceManager, loadingData);
+			loadAll(pack, packPriority);
 			packPriority++;
 		}
 		invalidIdentifierState.disable();
-		loadingData.containers.sort(Comparator.reverseOrder());
 
-		return new LoadingResult(loadingData.containers, loadingData.textureDependencies);
+		containers.sort(Comparator.reverseOrder());
+
+		return new LoadingResult(containers, textureDependencies);
 	}
 
-	private static void loadAll(ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingData loadingData) {
+	private void loadAll(ResourcePack pack, int packPriority) {
 		for (String namespace : pack.getNamespaces(ResourceType.CLIENT_RESOURCES)) {
-			pack.findResources(ResourceType.CLIENT_RESOURCES, namespace, "optifine/ctm", (id, inputSupplier) -> {
-				if (id.getPath().endsWith(".properties")) {
+			pack.findResources(ResourceType.CLIENT_RESOURCES, namespace, "optifine/ctm", (resourceId, inputSupplier) -> {
+				if (resourceId.getPath().endsWith(".properties")) {
 					try (InputStream stream = inputSupplier.get()) {
 						Properties properties = new Properties();
 						properties.load(stream);
-						load(properties, id, pack, packPriority, resourceManager, loadingData);
+						load(properties, resourceId, pack, packPriority);
 					} catch (Exception e) {
-						ContinuityClient.LOGGER.error("Failed to load CTM properties from file '" + id + "' in pack '" + pack.getName() + "'", e);
+						ContinuityClient.LOGGER.error("Failed to load CTM properties from file '" + resourceId + "' in pack '" + pack.getName() + "'", e);
 					}
 				}
 			});
 		}
 	}
 
-	private static void load(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, LoadingData loadingData) {
+	private void load(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority) {
 		String method = properties.getProperty("method", "ctm").trim();
-		CTMLoader<?> loader = CTMLoaderRegistry.get().getLoader(method);
+		CtmLoader<?> loader = CtmLoaderRegistry.get().getLoader(method);
 		if (loader != null) {
-			load(loader, properties, id, pack, packPriority, resourceManager, method, loadingData);
+			load(loader, properties, resourceId, pack, packPriority, method);
 		} else {
-			ContinuityClient.LOGGER.error("Unknown 'method' value '" + method + "' in file '" + id + "' in pack '" + pack.getName() + "'");
+			ContinuityClient.LOGGER.error("Unknown 'method' value '" + method + "' in file '" + resourceId + "' in pack '" + pack.getName() + "'");
 		}
 	}
 
-	private static <T extends CTMProperties> void load(CTMLoader<T> loader, Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method, LoadingData loadingData) {
-		T ctmProperties = loader.getPropertiesFactory().createProperties(properties, id, pack, packPriority, resourceManager, method);
+	private <T extends CtmProperties> void load(CtmLoader<T> loader, Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, String method) {
+		T ctmProperties = loader.getPropertiesFactory().createProperties(properties, resourceId, pack, packPriority, resourceManager, method);
 		if (ctmProperties != null) {
 			LoadingContainer<T> container = new LoadingContainer<>(loader, ctmProperties);
-			loadingData.containers.add(container);
+			containers.add(container);
 			for (SpriteIdentifier spriteId : ctmProperties.getTextureDependencies()) {
-				Set<Identifier> atlasTextureDependencies = loadingData.textureDependencies.computeIfAbsent(spriteId.getAtlasId(), id1 -> new ObjectOpenHashSet<>());
+				Set<Identifier> atlasTextureDependencies = textureDependencies.computeIfAbsent(spriteId.getAtlasId(), id -> new ObjectOpenHashSet<>());
 				atlasTextureDependencies.add(spriteId.getTextureId());
 			}
 		}
 	}
 
-	private static class LoadingData {
-		public final List<LoadingContainer<?>> containers = new ObjectArrayList<>();
-		public final Map<Identifier, Set<Identifier>> textureDependencies = new Object2ObjectOpenHashMap<>();
-	}
-
-	private record LoadingContainer<T extends CTMProperties>(CTMLoader<T> loader, T properties) implements Comparable<LoadingContainer<?>> {
+	private record LoadingContainer<T extends CtmProperties>(CtmLoader<T> loader, T properties) implements Comparable<LoadingContainer<?>> {
 		public QuadProcessors.ProcessorHolder toProcessorHolder(Function<SpriteIdentifier, Sprite> textureGetter) {
 			QuadProcessor processor = loader.getProcessorFactory().createProcessor(properties, textureGetter);
 			CachingPredicates predicates = loader.getPredicatesFactory().createPredicates(properties, textureGetter);

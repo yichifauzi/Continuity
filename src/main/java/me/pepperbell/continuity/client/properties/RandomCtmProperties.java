@@ -11,14 +11,14 @@ import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 
-public class RandomCTMProperties extends BaseCTMProperties {
+public class RandomCtmProperties extends BaseCtmProperties {
 	protected RandomIndexProvider.Factory indexProviderFactory = RandomIndexProvider.UnweightedFactory.INSTANCE;
 	protected int randomLoops = 0;
 	protected Symmetry symmetry = Symmetry.NONE;
 	protected boolean linked = false;
 
-	public RandomCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
-		super(properties, id, pack, packPriority, resourceManager, method);
+	public RandomCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, resourceId, pack, packPriority, resourceManager, method);
 	}
 
 	@Override
@@ -67,7 +67,7 @@ public class RandomCTMProperties extends BaseCTMProperties {
 				} catch (NumberFormatException e) {
 					//
 				}
-				ContinuityClient.LOGGER.warn("Invalid 'weights' element '" + weightStr + "' at index '" + i + "' in file '" + id + "' in pack '" + packName + "'");
+				ContinuityClient.LOGGER.warn("Invalid 'weights' element '" + weightStr + "' at index '" + i + "' in file '" + resourceId + "' in pack '" + packName + "'");
 			}
 
 			if (!weights.isEmpty()) {
@@ -91,11 +91,11 @@ public class RandomCTMProperties extends BaseCTMProperties {
 		} catch (NumberFormatException e) {
 			//
 		}
-		ContinuityClient.LOGGER.warn("Invalid 'randomLoops' value '" + randomLoopsStr + "' in file '" + id + "' in pack '" + packName + "'");
+		ContinuityClient.LOGGER.warn("Invalid 'randomLoops' value '" + randomLoopsStr + "' in file '" + resourceId + "' in pack '" + packName + "'");
 	}
 
 	protected void parseSymmetry() {
-		Symmetry symmetry = PropertiesParsingHelper.parseSymmetry(properties, "symmetry", id, packName);
+		Symmetry symmetry = PropertiesParsingHelper.parseSymmetry(properties, "symmetry", resourceId, packName);
 		if (symmetry != null) {
 			this.symmetry = symmetry;
 		}

@@ -7,7 +7,7 @@ import java.util.function.Predicate;
 import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
 import me.pepperbell.continuity.client.util.biome.BiomeRetriever;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.minecraft.block.BlockState;
@@ -73,7 +73,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 		return true;
 	}
 
-	public static BaseProcessingPredicate fromProperties(BaseCTMProperties properties) {
+	public static BaseProcessingPredicate fromProperties(BaseCtmProperties properties) {
 		return new BaseProcessingPredicate(properties.getFaces(), properties.getBiomePredicate(), properties.getHeightPredicate(), properties.getBlockEntityNamePredicate());
 	}
 
