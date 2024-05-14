@@ -2,11 +2,13 @@ package me.pepperbell.continuity.client.processor.simple;
 
 import java.util.function.Supplier;
 
+import org.jetbrains.annotations.Nullable;
+
 import me.pepperbell.continuity.api.client.QuadProcessor;
 import me.pepperbell.continuity.client.processor.AbstractQuadProcessorFactory;
 import me.pepperbell.continuity.client.processor.BaseProcessingPredicate;
 import me.pepperbell.continuity.client.processor.ProcessingPredicate;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
 import me.pepperbell.continuity.client.util.QuadUtil;
 import me.pepperbell.continuity.client.util.TextureUtil;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
@@ -28,25 +30,24 @@ public class SimpleQuadProcessor implements QuadProcessor {
 	@Override
 	public ProcessingResult processQuad(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
 		if (!processingPredicate.shouldProcessQuad(quad, sprite, blockView, state, pos, context)) {
-			return ProcessingResult.CONTINUE;
+			return ProcessingResult.NEXT_PROCESSOR;
 		}
 		Sprite newSprite = spriteProvider.getSprite(quad, sprite, blockView, state, pos, randomSupplier, context);
 		return process(quad, sprite, newSprite);
 	}
 
-	// TODO: rename? move?
-	public static ProcessingResult process(MutableQuadView quad, Sprite oldSprite, Sprite newSprite) {
+	public static ProcessingResult process(MutableQuadView quad, Sprite oldSprite, @Nullable Sprite newSprite) {
 		if (newSprite == null) {
-			return ProcessingResult.ABORT_AND_RENDER_QUAD;
+			return ProcessingResult.STOP;
 		}
 		if (TextureUtil.isMissingSprite(newSprite)) {
-			return ProcessingResult.CONTINUE;
+			return ProcessingResult.NEXT_PROCESSOR;
 		}
 		QuadUtil.interpolate(quad, oldSprite, newSprite);
-		return ProcessingResult.STOP;
+		return ProcessingResult.NEXT_PASS;
 	}
 
-	public static class Factory<T extends BaseCTMProperties> extends AbstractQuadProcessorFactory<T> {
+	public static class Factory<T extends BaseCtmProperties> extends AbstractQuadProcessorFactory<T> {
 		protected SpriteProvider.Factory<? super T> spriteProviderFactory;
 
 		public Factory(SpriteProvider.Factory<? super T> spriteProviderFactory) {

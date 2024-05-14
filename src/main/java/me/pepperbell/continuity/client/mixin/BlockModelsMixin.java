@@ -9,7 +9,7 @@ import me.pepperbell.continuity.client.util.SpriteCalculator;
 import net.minecraft.client.render.block.BlockModels;
 
 @Mixin(BlockModels.class)
-public class BlockModelsMixin {
+abstract class BlockModelsMixin {
 	@Inject(method = "setModels(Ljava/util/Map;)V", at = @At("HEAD"))
 	private void continuity$onHeadSetModels(CallbackInfo ci) {
 		SpriteCalculator.clearCache();

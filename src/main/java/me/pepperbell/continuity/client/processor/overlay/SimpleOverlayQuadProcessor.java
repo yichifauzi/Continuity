@@ -12,7 +12,7 @@ import me.pepperbell.continuity.client.processor.ProcessingDataKeys;
 import me.pepperbell.continuity.client.processor.ProcessingPredicate;
 import me.pepperbell.continuity.client.processor.simple.SimpleQuadProcessor;
 import me.pepperbell.continuity.client.processor.simple.SpriteProvider;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
 import me.pepperbell.continuity.client.properties.overlay.OverlayPropertiesSection;
 import me.pepperbell.continuity.client.util.QuadUtil;
 import me.pepperbell.continuity.client.util.RenderUtil;
@@ -51,7 +51,7 @@ public class SimpleOverlayQuadProcessor extends SimpleQuadProcessor {
 				context.addEmitterConsumer(emitter);
 			}
 		}
-		return ProcessingResult.CONTINUE;
+		return ProcessingResult.NEXT_PROCESSOR;
 	}
 
 	public static class OverlayEmitter implements Consumer<QuadEmitter> {
@@ -91,7 +91,7 @@ public class SimpleOverlayQuadProcessor extends SimpleQuadProcessor {
 		}
 	}
 
-	public static class Factory<T extends BaseCTMProperties & OverlayPropertiesSection.Provider> extends SimpleQuadProcessor.Factory<T> {
+	public static class Factory<T extends BaseCtmProperties & OverlayPropertiesSection.Provider> extends SimpleQuadProcessor.Factory<T> {
 		public Factory(SpriteProvider.Factory<? super T> spriteProviderFactory) {
 			super(spriteProviderFactory);
 		}

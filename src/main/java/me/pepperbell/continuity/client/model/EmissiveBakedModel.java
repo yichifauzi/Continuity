@@ -66,7 +66,7 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 		}
 
 		MeshBuilder meshBuilder = container.meshBuilder;
-		quadTransform.prepare(meshBuilder.getEmitter(), blockView, state, pos, ContinuityConfig.INSTANCE.useManualCulling.get());
+		quadTransform.prepare(meshBuilder.getEmitter(), blockView, state, pos, context, ContinuityConfig.INSTANCE.useManualCulling.get());
 
 		context.pushTransform(quadTransform);
 		super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
@@ -112,16 +112,18 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 
 	@Override
 	public boolean isVanillaAdapter() {
+		if (!ContinuityConfig.INSTANCE.emissiveTextures.get()) {
+			return super.isVanillaAdapter();
+		}
 		return false;
 	}
 
 	protected static class EmissiveBlockQuadTransform implements RenderContext.QuadTransform {
-		protected final CullingCache cullingCache = new CullingCache();
-
 		protected QuadEmitter emitter;
 		protected BlockRenderView blockView;
 		protected BlockState state;
 		protected BlockPos pos;
+		protected RenderContext renderContext;
 		protected boolean useManualCulling;
 
 		protected boolean active;
@@ -131,7 +133,7 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 
 		@Override
 		public boolean transform(MutableQuadView quad) {
-			if (useManualCulling && cullingCache.shouldCull(quad, blockView, pos, state)) {
+			if (useManualCulling && renderContext.isFaceCulled(quad.cullFace())) {
 				return false;
 			}
 
@@ -175,19 +177,18 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 			return didEmit;
 		}
 
-		public void prepare(QuadEmitter emitter, BlockRenderView blockView, BlockState state, BlockPos pos, boolean useManualCulling) {
+		public void prepare(QuadEmitter emitter, BlockRenderView blockView, BlockState state, BlockPos pos, RenderContext renderContext, boolean useManualCulling) {
 			this.emitter = emitter;
 			this.blockView = blockView;
 			this.state = state;
 			this.pos = pos;
+			this.renderContext = renderContext;
 			this.useManualCulling = useManualCulling;
 
 			active = true;
 			didEmit = false;
 			calculateDefaultLayer = true;
 			isDefaultLayerSolid = false;
-
-			cullingCache.prepare();
 		}
 
 		public void reset() {
@@ -195,6 +196,7 @@ public class EmissiveBakedModel extends ForwardingBakedModel {
 			blockView = null;
 			state = null;
 			pos = null;
+			renderContext = null;
 			useManualCulling = false;
 
 			active = false;

@@ -4,7 +4,7 @@ import java.util.function.Supplier;
 
 import me.pepperbell.continuity.api.client.QuadProcessor;
 import me.pepperbell.continuity.client.processor.simple.SimpleQuadProcessor;
-import me.pepperbell.continuity.client.properties.StandardConnectingCTMProperties;
+import me.pepperbell.continuity.client.properties.ConnectingCtmProperties;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.Sprite;
@@ -14,9 +14,14 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 
-public class TopQuadProcessor extends ConnectingQuadProcessor {
+public class TopQuadProcessor extends AbstractQuadProcessor {
+	protected ConnectionPredicate connectionPredicate;
+	protected boolean innerSeams;
+
 	public TopQuadProcessor(Sprite[] sprites, ProcessingPredicate processingPredicate, ConnectionPredicate connectionPredicate, boolean innerSeams) {
-		super(sprites, processingPredicate, connectionPredicate, innerSeams);
+		super(sprites, processingPredicate);
+		this.connectionPredicate = connectionPredicate;
+		this.innerSeams = innerSeams;
 	}
 
 	@Override
@@ -35,17 +40,17 @@ public class TopQuadProcessor extends ConnectingQuadProcessor {
 				return SimpleQuadProcessor.process(quad, sprite, sprites[0]);
 			}
 		}
-		return ProcessingResult.CONTINUE;
+		return ProcessingResult.NEXT_PROCESSOR;
 	}
 
-	public static class Factory extends AbstractQuadProcessorFactory<StandardConnectingCTMProperties> {
+	public static class Factory extends AbstractQuadProcessorFactory<ConnectingCtmProperties> {
 		@Override
-		public QuadProcessor createProcessor(StandardConnectingCTMProperties properties, Sprite[] sprites) {
+		public QuadProcessor createProcessor(ConnectingCtmProperties properties, Sprite[] sprites) {
 			return new TopQuadProcessor(sprites, BaseProcessingPredicate.fromProperties(properties), properties.getConnectionPredicate(), properties.getInnerSeams());
 		}
 
 		@Override
-		public int getTextureAmount(StandardConnectingCTMProperties properties) {
+		public int getTextureAmount(ConnectingCtmProperties properties) {
 			return 1;
 		}
 	}

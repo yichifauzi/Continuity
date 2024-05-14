@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -29,7 +28,7 @@ import net.minecraft.client.texture.SpriteLoader;
 import net.minecraft.util.Identifier;
 
 @Mixin(SpriteLoader.class)
-public class SpriteLoaderMixin {
+abstract class SpriteLoaderMixin {
 	@Shadow
 	@Final
 	private Identifier id;
@@ -39,11 +38,11 @@ public class SpriteLoaderMixin {
 		SpriteLoaderLoadContext context = SpriteLoaderLoadContext.THREAD_LOCAL.get();
 		if (context != null) {
 			CompletableFuture<@Nullable Set<Identifier>> extraIdsFuture = context.getExtraIdsFuture(id);
-			if (context.getEmissiveControl(id) != null) {
-				AtomicReference<@Nullable Map<Identifier, Identifier>> emissiveIdMapHolder = context.getEmissiveIdMapHolder();
+			SpriteLoaderLoadContext.EmissiveControl emissiveControl = context.getEmissiveControl(id);
+			if (emissiveControl != null) {
 				return () -> {
-					AtlasLoaderInitContext.THREAD_LOCAL.set(() -> extraIdsFuture);
-					AtlasLoaderLoadContext.THREAD_LOCAL.set(emissiveIdMapHolder::set);
+					AtlasLoaderInitContext.THREAD_LOCAL.set(extraIdsFuture::join);
+					AtlasLoaderLoadContext.THREAD_LOCAL.set(emissiveControl::setEmissiveIdMap);
 					List<Supplier<SpriteContents>> list = supplier.get();
 					AtlasLoaderInitContext.THREAD_LOCAL.set(null);
 					AtlasLoaderLoadContext.THREAD_LOCAL.set(null);
@@ -51,7 +50,7 @@ public class SpriteLoaderMixin {
 				};
 			}
 			return () -> {
-				AtlasLoaderInitContext.THREAD_LOCAL.set(() -> extraIdsFuture);
+				AtlasLoaderInitContext.THREAD_LOCAL.set(extraIdsFuture::join);
 				List<Supplier<SpriteContents>> list = supplier.get();
 				AtlasLoaderInitContext.THREAD_LOCAL.set(null);
 				return list;
@@ -66,9 +65,8 @@ public class SpriteLoaderMixin {
 		if (context != null) {
 			SpriteLoaderLoadContext.EmissiveControl emissiveControl = context.getEmissiveControl(id);
 			if (emissiveControl != null) {
-				AtomicReference<@Nullable Map<Identifier, Identifier>> emissiveIdMapHolder = context.getEmissiveIdMapHolder();
 				return spriteContentsList -> {
-					Map<Identifier, Identifier> emissiveIdMap = emissiveIdMapHolder.get();
+					Map<Identifier, Identifier> emissiveIdMap = emissiveControl.getEmissiveIdMap();
 					if (emissiveIdMap != null) {
 						SpriteLoaderStitchContext.THREAD_LOCAL.set(new SpriteLoaderStitchContext() {
 							@Override
@@ -83,7 +81,6 @@ public class SpriteLoaderMixin {
 						});
 						SpriteLoader.StitchResult result = function.apply(spriteContentsList);
 						SpriteLoaderStitchContext.THREAD_LOCAL.set(null);
-						emissiveIdMapHolder.set(null);
 						return result;
 					}
 					return function.apply(spriteContentsList);

@@ -15,11 +15,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.BlockRenderView;
 
-public class ConnectingCTMProperties extends BaseCTMProperties {
+public class BasicConnectingCtmProperties extends BaseCtmProperties {
 	protected ConnectionPredicate connectionPredicate;
 
-	public ConnectingCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
-		super(properties, id, pack, packPriority, resourceManager, method);
+	public BasicConnectingCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, resourceId, pack, packPriority, resourceManager, method);
 	}
 
 	@Override
@@ -55,7 +55,7 @@ public class ConnectingCTMProperties extends BaseCTMProperties {
 
 	protected void validateConnect() {
 		if (connectionPredicate == null) {
-			ContinuityClient.LOGGER.error("No valid connection type provided in file '" + id + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.error("No valid connection type provided in file '" + resourceId + "' in pack '" + packName + "'");
 			valid = false;
 		}
 	}

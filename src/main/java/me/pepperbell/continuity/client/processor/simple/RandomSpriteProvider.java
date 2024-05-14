@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
 import me.pepperbell.continuity.client.processor.ProcessingDataKeys;
 import me.pepperbell.continuity.client.processor.Symmetry;
-import me.pepperbell.continuity.client.properties.RandomCTMProperties;
+import me.pepperbell.continuity.client.properties.RandomCtmProperties;
 import me.pepperbell.continuity.client.util.MathUtil;
 import me.pepperbell.continuity.client.util.RandomIndexProvider;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
@@ -37,7 +37,7 @@ public class RandomSpriteProvider implements SpriteProvider {
 	@Override
 	@Nullable
 	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
-		Direction face = symmetry.getActualFace(quad.lightFace());
+		Direction face = symmetry.apply(quad.lightFace());
 
 		int x = pos.getX();
 		int y = pos.getY();
@@ -59,9 +59,9 @@ public class RandomSpriteProvider implements SpriteProvider {
 		return sprites[indexProvider.getRandomIndex(seed)];
 	}
 
-	public static class Factory implements SpriteProvider.Factory<RandomCTMProperties> {
+	public static class Factory implements SpriteProvider.Factory<RandomCtmProperties> {
 		@Override
-		public SpriteProvider createSpriteProvider(Sprite[] sprites, RandomCTMProperties properties) {
+		public SpriteProvider createSpriteProvider(Sprite[] sprites, RandomCtmProperties properties) {
 			if (sprites.length == 1) {
 				return new FixedSpriteProvider(sprites[0]);
 			}
@@ -69,7 +69,7 @@ public class RandomSpriteProvider implements SpriteProvider {
 		}
 
 		@Override
-		public int getTextureAmount(RandomCTMProperties properties) {
+		public int getTextureAmount(RandomCtmProperties properties) {
 			return properties.getSpriteIds().size();
 		}
 	}

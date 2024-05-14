@@ -7,16 +7,21 @@ import org.jetbrains.annotations.Nullable;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import me.pepperbell.continuity.client.ContinuityClient;
+import me.pepperbell.continuity.client.processor.OrientationMode;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
 
-public class CompactConnectingCTMProperties extends StandardConnectingCTMProperties {
+public class CompactConnectingCtmProperties extends OrientedConnectingCtmProperties {
 	@Nullable
 	protected Int2IntMap tileReplacementMap;
 
-	public CompactConnectingCTMProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
-		super(properties, id, pack, packPriority, resourceManager, method);
+	public CompactConnectingCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method, OrientationMode defaultOrientationMode) {
+		super(properties, resourceId, pack, packPriority, resourceManager, method, defaultOrientationMode);
+	}
+
+	public CompactConnectingCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		this(properties, resourceId, pack, packPriority, resourceManager, method, OrientationMode.TEXTURE);
 	}
 
 	@Override
@@ -44,12 +49,12 @@ public class CompactConnectingCTMProperties extends StandardConnectingCTMPropert
 				try {
 					value = Integer.parseInt(valueStr);
 				} catch (NumberFormatException e) {
-					ContinuityClient.LOGGER.warn("Invalid '" + key + "' value '" + valueStr + "' in file '" + id + "' in pack '" + packName + "'");
+					ContinuityClient.LOGGER.warn("Invalid '" + key + "' value '" + valueStr + "' in file '" + resourceId + "' in pack '" + packName + "'");
 					continue;
 				}
 				// TODO: deduplicate code
 				if (value < 0) {
-					ContinuityClient.LOGGER.warn("Invalid '" + key + "' value '" + valueStr + "' in file '" + id + "' in pack '" + packName + "'");
+					ContinuityClient.LOGGER.warn("Invalid '" + key + "' value '" + valueStr + "' in file '" + resourceId + "' in pack '" + packName + "'");
 					continue;
 				}
 

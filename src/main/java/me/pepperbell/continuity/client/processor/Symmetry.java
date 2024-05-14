@@ -7,7 +7,7 @@ public enum Symmetry {
 	OPPOSITE,
 	ALL;
 
-	public Direction getActualFace(Direction face) {
+	public Direction apply(Direction face) {
 		if (this == Symmetry.OPPOSITE) {
 			if (face.getDirection() == Direction.AxisDirection.POSITIVE) {
 				face = face.getOpposite();

@@ -2,8 +2,8 @@ package me.pepperbell.continuity.client.processor;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-import me.pepperbell.continuity.client.util.QuadUtil;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
+import net.minecraft.block.BlockState;
 import net.minecraft.util.math.Direction;
 
 public final class DirectionMaps {
@@ -51,7 +51,7 @@ public final class DirectionMaps {
 		return DIRECTION_MAPS[direction.ordinal()];
 	}
 
-	public static Direction[] getDirections(QuadView quad) {
-		return getMap(quad.lightFace())[QuadUtil.getTextureOrientation(quad)];
+	public static Direction[] getDirections(OrientationMode orientationMode, QuadView quad, BlockState state) {
+		return getMap(quad.lightFace())[orientationMode.getOrientation(quad, state)];
 	}
 }
