@@ -12,8 +12,6 @@ import java.util.function.Predicate;
 import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.ImmutableMap;
-
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -242,7 +240,7 @@ public final class PropertiesParsingHelper {
 						}
 
 						predicateMap.put(block, state -> {
-							ImmutableMap<Property<?>, Comparable<?>> targetValueMap = state.getEntries();
+							Map<Property<?>, Comparable<?>> targetValueMap = state.getEntries();
 							for (Map.Entry<Property<?>, ObjectOpenHashSet<Comparable<?>>> entry : entryArray) {
 								Comparable<?> targetValue = targetValueMap.get(entry.getKey());
 								if (targetValue != null) {

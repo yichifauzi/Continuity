@@ -69,9 +69,9 @@ public final class CustomBlockLayers {
 			try (InputStream inputStream = resource.getInputStream()) {
 				Properties properties = new Properties();
 				properties.load(inputStream);
-				reload(properties, LOCATION, resource.getResourcePackName());
+				reload(properties, LOCATION, resource.getPackId());
 			} catch (IOException e) {
-				ContinuityClient.LOGGER.error("Failed to load custom block layers from file '" + LOCATION + "' from pack '" + resource.getResourcePackName() + "'", e);
+				ContinuityClient.LOGGER.error("Failed to load custom block layers from file '" + LOCATION + "' from pack '" + resource.getPackId() + "'", e);
 			}
 		}
 	}

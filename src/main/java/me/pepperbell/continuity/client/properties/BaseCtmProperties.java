@@ -81,7 +81,7 @@ public class BaseCtmProperties implements CtmProperties {
 	public BaseCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
 		this.properties = properties;
 		this.resourceId = resourceId;
-		this.packName = pack.getName();
+		this.packName = pack.getId();
 		this.packPriority = packPriority;
 		this.resourceManager = resourceManager;
 		this.method = method;
@@ -605,7 +605,7 @@ public class BaseCtmProperties implements CtmProperties {
 						}
 					} else if (packStr.equals("programmer_art")) {
 						Optional<Resource> optionalResource = resourceManager.getResource(resourceId);
-						if (optionalResource.isPresent() && !optionalResource.get().getPack().getName().equals("programmer_art")) {
+						if (optionalResource.isPresent() && !optionalResource.get().getPack().getId().equals("programmer_art")) {
 							valid = false;
 							break;
 						}
