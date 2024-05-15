@@ -9,7 +9,6 @@ import me.pepperbell.continuity.client.ContinuityClient;
 import net.fabricmc.fabric.api.renderer.v1.material.BlendMode;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.InvalidIdentifierException;
@@ -74,8 +73,8 @@ public class OverlayPropertiesSection {
 				return;
 			}
 
-			Block block = Registries.BLOCK.get(blockId);
-			if (block != Blocks.AIR) {
+			if (Registries.BLOCK.containsId(blockId)) {
+				Block block = Registries.BLOCK.get(blockId);
 				tintBlock = block.getDefaultState();
 			} else {
 				ContinuityClient.LOGGER.warn("Unknown block '" + blockId + "' in 'tintBlock' value '" + tintBlockStr + "' in file '" + id + "' in pack '" + packName + "'");

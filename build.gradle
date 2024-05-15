@@ -1,17 +1,16 @@
 plugins {
 	id 'fabric-loom' version "${loom_version}"
-	id 'io.github.juuxel.loom-vineflower' version "${loom_vineflower_version}"
 	id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
-
-archivesBaseName = project.archives_base_name
 version = project.mod_version + '+' + project.mod_minecraft_version + getExtraBuildMetadata()
 group = project.maven_group
 
-String getExtraBuildMetadata() {
+base {
+	archivesName = project.archives_base_name
+}
+
+static String getExtraBuildMetadata() {
 	String buildNumber = System.getenv('GITHUB_RUN_NUMBER')
 	if (buildNumber != null) {
 		return ".build.${buildNumber}"
@@ -63,8 +62,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	// Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
-	it.options.release.set(17)
+	it.options.release = 17
 }
 
 java {
@@ -72,18 +70,22 @@ java {
 	// if it is present.
 	// If you remove this line, sources will not be generated.
 	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
 }
 
 jar {
 	from('LICENSE') {
-		rename { "${it}_${project.archivesBaseName}" }
+		rename { "${it}_${project.base.archivesName.get()}" }
 	}
 }
 
 // configure the maven publication
 publishing {
 	publications {
-		mavenJava(MavenPublication) {
+		create('mavenJava', MavenPublication) {
+			artifactId = project.archives_base_name
 			from components.java
 		}
 	}

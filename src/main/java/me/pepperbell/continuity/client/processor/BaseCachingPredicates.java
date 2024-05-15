@@ -7,8 +7,7 @@ import java.util.function.Predicate;
 import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.api.client.CachingPredicates;
-import me.pepperbell.continuity.api.client.CachingPredicatesFactory;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.SpriteIdentifier;
@@ -58,7 +57,7 @@ public class BaseCachingPredicates implements CachingPredicates {
 		return isValidForMultipass;
 	}
 
-	public static class Factory<T extends BaseCTMProperties> implements CachingPredicatesFactory<T> {
+	public static class Factory<T extends BaseCtmProperties> implements CachingPredicates.Factory<T> {
 		protected boolean isValidForMultipass;
 
 		public Factory(boolean isValidForMultipass) {

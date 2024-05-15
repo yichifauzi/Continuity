@@ -2,7 +2,6 @@ package me.pepperbell.continuity.client.util;
 
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Supplier;
 
@@ -61,7 +60,7 @@ public final class SpriteCalculator {
 
 	private static class SpriteCache {
 		private final Direction face;
-		private final Map<BlockState, Sprite> sprites = new Reference2ReferenceOpenHashMap<>();
+		private final Reference2ReferenceOpenHashMap<BlockState, Sprite> sprites = new Reference2ReferenceOpenHashMap<>();
 		private final Supplier<Random> randomSupplier = new Supplier<>() {
 			private final Random random = Random.create();
 
@@ -80,21 +79,42 @@ public final class SpriteCalculator {
 
 		public Sprite getSprite(BlockState state) {
 			Sprite sprite;
+
+			long optimisticReadStamp = lock.tryOptimisticRead();
+			if (optimisticReadStamp != 0L) {
+				try {
+					// This map read could happen at the same time as a map write, so catch any exceptions.
+					// This is safe due to the map implementation used, which is guaranteed to not mutate the map during
+					// a read.
+					sprite = sprites.get(state);
+					if (sprite != null && lock.validate(optimisticReadStamp)) {
+						return sprite;
+					}
+				} catch (Exception e) {
+					//
+				}
+			}
+
 			long readStamp = lock.readLock();
 			try {
 				sprite = sprites.get(state);
 			} finally {
 				lock.unlockRead(readStamp);
 			}
+
 			if (sprite == null) {
 				long writeStamp = lock.writeLock();
 				try {
-					sprite = calculateSprite(state, face, randomSupplier);
-					sprites.put(state, sprite);
+					sprite = sprites.get(state);
+					if (sprite == null) {
+						sprite = calculateSprite(state, face, randomSupplier);
+						sprites.put(state, sprite);
+					}
 				} finally {
 					lock.unlockWrite(writeStamp);
 				}
 			}
+
 			return sprite;
 		}
 

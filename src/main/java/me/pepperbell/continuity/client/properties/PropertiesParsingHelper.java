@@ -21,11 +21,11 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import me.pepperbell.continuity.client.ContinuityClient;
+import me.pepperbell.continuity.client.processor.OrientationMode;
 import me.pepperbell.continuity.client.processor.Symmetry;
 import me.pepperbell.continuity.client.resource.ResourceRedirectHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registries;
 import net.minecraft.state.property.Property;
 import net.minecraft.util.Identifier;
@@ -150,8 +150,8 @@ public final class PropertiesParsingHelper {
 						continue;
 					}
 
-					Block block = Registries.BLOCK.get(blockId);
-					if (block != Blocks.AIR) {
+					if (Registries.BLOCK.containsId(blockId)) {
+						Block block = Registries.BLOCK.get(blockId);
 						if (!blockSet.contains(block)) {
 							if (parts.length > startIndex) {
 								Object2ObjectOpenHashMap<Property<?>, ObjectOpenHashSet<Comparable<?>>> propertyMap = new Object2ObjectOpenHashMap<>();
@@ -276,6 +276,21 @@ public final class PropertiesParsingHelper {
 			return Symmetry.valueOf(symmetryStr.trim().toUpperCase(Locale.ROOT));
 		} catch (IllegalArgumentException e) {
 			ContinuityClient.LOGGER.warn("Unknown '" + propertyKey + "' value '" + symmetryStr + "' in file '" + fileLocation + "' in pack '" + packName + "'");
+		}
+		return null;
+	}
+
+	@Nullable
+	public static OrientationMode parseOrientationMode(Properties properties, String propertyKey, Identifier fileLocation, String packName) {
+		String orientationModeStr = properties.getProperty(propertyKey);
+		if (orientationModeStr == null) {
+			return null;
+		}
+
+		try {
+			return OrientationMode.valueOf(orientationModeStr.trim().toUpperCase(Locale.ROOT));
+		} catch (IllegalArgumentException e) {
+			ContinuityClient.LOGGER.warn("Unknown '" + propertyKey + "' value '" + orientationModeStr + "' in file '" + fileLocation + "' in pack '" + packName + "'");
 		}
 		return null;
 	}

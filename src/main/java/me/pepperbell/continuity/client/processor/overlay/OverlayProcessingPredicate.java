@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
 import me.pepperbell.continuity.client.processor.BaseProcessingPredicate;
-import me.pepperbell.continuity.client.properties.BaseCTMProperties;
+import me.pepperbell.continuity.client.properties.BaseCtmProperties;
 import me.pepperbell.continuity.client.util.QuadUtil;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.minecraft.block.BlockState;
@@ -31,7 +31,7 @@ public class OverlayProcessingPredicate extends BaseProcessingPredicate {
 		return QuadUtil.isQuadUnitSquare(quad);
 	}
 
-	public static OverlayProcessingPredicate fromProperties(BaseCTMProperties properties) {
+	public static OverlayProcessingPredicate fromProperties(BaseCtmProperties properties) {
 		return new OverlayProcessingPredicate(properties.getFaces(), properties.getBiomePredicate(), properties.getHeightPredicate(), properties.getBlockEntityNamePredicate());
 	}
 }

@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -21,17 +20,19 @@ import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 
 public class BakedModelManagerReloadExtension {
-	private final CompletableFuture<CTMPropertiesLoader.LoadingResult> ctmLoadingResultFuture;
+	private final CompletableFuture<CtmPropertiesLoader.LoadingResult> ctmLoadingResultFuture;
 	private final AtomicBoolean wrapEmissiveModels = new AtomicBoolean();
+	private final SpriteLoaderLoadContextImpl spriteLoaderLoadContext;
 	private volatile List<QuadProcessors.ProcessorHolder> processorHolders;
 
 	public BakedModelManagerReloadExtension(ResourceManager resourceManager, Executor prepareExecutor) {
-		ctmLoadingResultFuture = CompletableFuture.supplyAsync(() -> CTMPropertiesLoader.loadAllWithState(resourceManager), prepareExecutor);
+		ctmLoadingResultFuture = CompletableFuture.supplyAsync(() -> CtmPropertiesLoader.loadAllWithState(resourceManager), prepareExecutor);
+		spriteLoaderLoadContext = new SpriteLoaderLoadContextImpl(ctmLoadingResultFuture.thenApply(CtmPropertiesLoader.LoadingResult::getTextureDependencies), wrapEmissiveModels);
 		EmissiveSuffixLoader.load(resourceManager);
 	}
 
 	public void setContext() {
-		SpriteLoaderLoadContext.THREAD_LOCAL.set(new SpriteLoaderInitContextImpl(ctmLoadingResultFuture.thenApply(CTMPropertiesLoader.LoadingResult::getTextureDependencies), wrapEmissiveModels));
+		SpriteLoaderLoadContext.THREAD_LOCAL.set(spriteLoaderLoadContext);
 	}
 
 	public void clearContext() {
@@ -39,7 +40,7 @@ public class BakedModelManagerReloadExtension {
 	}
 
 	public void beforeBaking(Map<Identifier, SpriteAtlasManager.AtlasPreparation> preparations, ModelLoader modelLoader) {
-		CTMPropertiesLoader.LoadingResult result = ctmLoadingResultFuture.join();
+		CtmPropertiesLoader.LoadingResult result = ctmLoadingResultFuture.join();
 
 		List<QuadProcessors.ProcessorHolder> processorHolders = result.createProcessorHolders(spriteId -> {
 			SpriteAtlasManager.AtlasPreparation preparation = preparations.get(spriteId.getAtlasId());
@@ -52,8 +53,8 @@ public class BakedModelManagerReloadExtension {
 
 		this.processorHolders = processorHolders;
 
-		((ModelLoaderExtension) modelLoader).continuity$setWrapCTM(!processorHolders.isEmpty());
-		((ModelLoaderExtension) modelLoader).continuity$setWrapEmissive(wrapEmissiveModels.get());
+		ModelWrappingHandler wrappingHandler = ModelWrappingHandler.create(!processorHolders.isEmpty(), wrapEmissiveModels.get());
+		((ModelLoaderExtension) modelLoader).continuity$setModelWrappingHandler(wrappingHandler);
 	}
 
 	public void apply() {
@@ -63,15 +64,14 @@ public class BakedModelManagerReloadExtension {
 		}
 	}
 
-	private static class SpriteLoaderInitContextImpl implements SpriteLoaderLoadContext {
+	private static class SpriteLoaderLoadContextImpl implements SpriteLoaderLoadContext {
 		private final CompletableFuture<Map<Identifier, Set<Identifier>>> allExtraIdsFuture;
 		private final Map<Identifier, CompletableFuture<Set<Identifier>>> extraIdsFutures = new Object2ObjectOpenHashMap<>();
 		private final EmissiveControl blockAtlasEmissiveControl;
-		private final AtomicReference<Map<Identifier, Identifier>> emissiveIdMapHolder = new AtomicReference<>();
 
-		public SpriteLoaderInitContextImpl(CompletableFuture<Map<Identifier, Set<Identifier>>> allExtraIdsFuture, AtomicBoolean blockAtlasHasEmissivesHolder) {
+		public SpriteLoaderLoadContextImpl(CompletableFuture<Map<Identifier, Set<Identifier>>> allExtraIdsFuture, AtomicBoolean blockAtlasHasEmissivesHolder) {
 			this.allExtraIdsFuture = allExtraIdsFuture;
-			blockAtlasEmissiveControl = () -> blockAtlasHasEmissivesHolder.set(true);
+			blockAtlasEmissiveControl = new EmissiveControlImpl(blockAtlasHasEmissivesHolder);
 		}
 
 		@Override
@@ -88,9 +88,30 @@ public class BakedModelManagerReloadExtension {
 			return null;
 		}
 
-		@Override
-		public AtomicReference<@Nullable Map<Identifier, Identifier>> getEmissiveIdMapHolder() {
-			return emissiveIdMapHolder;
+		private static class EmissiveControlImpl implements EmissiveControl {
+			@Nullable
+			private volatile Map<Identifier, Identifier> emissiveIdMap;
+			private final AtomicBoolean hasEmissivesHolder;
+
+			public EmissiveControlImpl(AtomicBoolean hasEmissivesHolder) {
+				this.hasEmissivesHolder = hasEmissivesHolder;
+			}
+
+			@Override
+			@Nullable
+			public Map<Identifier, Identifier> getEmissiveIdMap() {
+				return emissiveIdMap;
+			}
+
+			@Override
+			public void setEmissiveIdMap(Map<Identifier, Identifier> emissiveIdMap) {
+				this.emissiveIdMap = emissiveIdMap;
+			}
+
+			@Override
+			public void markHasEmissives() {
+				hasEmissivesHolder.set(true);
+			}
 		}
 	}
 }

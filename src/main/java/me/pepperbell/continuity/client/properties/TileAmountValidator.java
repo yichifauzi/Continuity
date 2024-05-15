@@ -1,14 +1,14 @@
 package me.pepperbell.continuity.client.properties;
 
-import me.pepperbell.continuity.api.client.CTMPropertiesFactory;
+import me.pepperbell.continuity.api.client.CtmProperties;
 import me.pepperbell.continuity.client.ContinuityClient;
 
-public interface TileAmountValidator<T extends BaseCTMProperties> {
+public interface TileAmountValidator<T extends BaseCtmProperties> {
 	boolean validateTileAmount(int amount, T properties);
 
-	static <T extends BaseCTMProperties> CTMPropertiesFactory<T> wrapFactory(CTMPropertiesFactory<T> factory, TileAmountValidator<T> validator) {
-		return (properties, id, pack, packPriority, resourceManager, method) -> {
-			T ctmProperties = factory.createProperties(properties, id, pack, packPriority, resourceManager, method);
+	static <T extends BaseCtmProperties> CtmProperties.Factory<T> wrapFactory(CtmProperties.Factory<T> factory, TileAmountValidator<T> validator) {
+		return (properties, resourceId, pack, packPriority, resourceManager, method) -> {
+			T ctmProperties = factory.createProperties(properties, resourceId, pack, packPriority, resourceManager, method);
 			if (ctmProperties == null) {
 				return null;
 			}
@@ -19,7 +19,7 @@ public interface TileAmountValidator<T extends BaseCTMProperties> {
 		};
 	}
 
-	class Exactly<T extends BaseCTMProperties> implements TileAmountValidator<T> {
+	class Exactly<T extends BaseCtmProperties> implements TileAmountValidator<T> {
 		protected final int targetAmount;
 
 		public Exactly(int targetAmount) {
@@ -31,12 +31,12 @@ public interface TileAmountValidator<T extends BaseCTMProperties> {
 			if (amount == targetAmount) {
 				return true;
 			}
-			ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires exactly " + targetAmount + " tiles but " + amount + " were provided in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+			ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires exactly " + targetAmount + " tiles but " + amount + " were provided in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 			return false;
 		}
 	}
 
-	class AtLeast<T extends BaseCTMProperties> implements TileAmountValidator<T> {
+	class AtLeast<T extends BaseCtmProperties> implements TileAmountValidator<T> {
 		protected final int targetAmount;
 
 		public AtLeast(int targetAmount) {
@@ -48,7 +48,7 @@ public interface TileAmountValidator<T extends BaseCTMProperties> {
 			if (amount >= targetAmount) {
 				return true;
 			}
-			ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires at least " + targetAmount + " tiles but only " + amount + " were provided in file '" + properties.getId() + "' in pack '" + properties.getPackName() + "'");
+			ContinuityClient.LOGGER.error("Method '" + properties.getMethod() + "' requires at least " + targetAmount + " tiles but only " + amount + " were provided in file '" + properties.getResourceId() + "' in pack '" + properties.getPackName() + "'");
 			return false;
 		}
 	}
