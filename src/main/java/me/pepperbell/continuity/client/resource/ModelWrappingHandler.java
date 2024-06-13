@@ -2,6 +2,7 @@ package me.pepperbell.continuity.client.resource;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -51,11 +52,11 @@ public class ModelWrappingHandler {
 		return builder.build();
 	}
 
-	public BakedModel wrap(@Nullable BakedModel model, Identifier modelId) {
-		if (model != null && !model.isBuiltin() && !modelId.equals(ModelLoader.MISSING_ID)) {
+	public BakedModel wrap(@Nullable BakedModel model, @UnknownNullability Identifier resourceId, @UnknownNullability ModelIdentifier topLevelId) {
+		if (model != null && !model.isBuiltin() && (resourceId == null || !resourceId.equals(ModelLoader.MISSING_ID))) {
 			if (wrapCtm) {
-				if (modelId instanceof ModelIdentifier) {
-					BlockState state = blockStateModelIds.get(modelId);
+				if (topLevelId != null) {
+					BlockState state = blockStateModelIds.get(topLevelId);
 					if (state != null) {
 						model = new CtmBakedModel(model, state);
 					}
@@ -75,7 +76,7 @@ public class ModelWrappingHandler {
 				ModelLoader modelLoader = ctx.loader();
 				ModelWrappingHandler wrappingHandler = ((ModelLoaderExtension) modelLoader).continuity$getModelWrappingHandler();
 				if (wrappingHandler != null) {
-					return wrappingHandler.wrap(model, ctx.id());
+					return wrappingHandler.wrap(model, ctx.resourceId(), ctx.topLevelId());
 				}
 				return model;
 			});

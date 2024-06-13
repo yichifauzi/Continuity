@@ -63,7 +63,7 @@ abstract class AtlasLoaderMixin {
 				Map<Identifier, Identifier> emissiveIdMap = new Object2ObjectOpenHashMap<>();
 				suppliers.forEach((id, supplier) -> {
 					if (!id.getPath().endsWith(emissiveSuffix)) {
-						Identifier emissiveId = new Identifier(id.getNamespace(), id.getPath() + emissiveSuffix);
+						Identifier emissiveId = id.withPath(id.getPath() + emissiveSuffix);
 						if (!suppliers.containsKey(emissiveId)) {
 							Identifier emissiveLocation = emissiveId.withPath("textures/" + emissiveId.getPath() + ".png");
 							Optional<Resource> optionalResource = resourceManager.getResource(emissiveLocation);

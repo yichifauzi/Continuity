@@ -23,7 +23,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EmptyBlockView;
 
 public final class CustomBlockLayers {
-	public static final Identifier LOCATION = new Identifier("optifine/block.properties");
+	public static final Identifier LOCATION = Identifier.ofVanilla("optifine/block.properties");
 
 	@SuppressWarnings("unchecked")
 	private static final Predicate<BlockState>[] EMPTY_LAYER_PREDICATES = new Predicate[BlockLayer.VALUES.length];

@@ -153,7 +153,7 @@ public class BaseCtmProperties implements CtmProperties {
 		if (matchBlocksPredicate == null) {
 			if (baseName.startsWith("block_")) {
 				try {
-					Identifier id = new Identifier(baseName.substring(6));
+					Identifier id = Identifier.of(baseName.substring(6));
 					if (Registries.BLOCK.containsId(id)) {
 						Block block = Registries.BLOCK.get(id);
 						matchBlocksPredicate = state -> state.getBlock() == block;
@@ -208,7 +208,7 @@ public class BaseCtmProperties implements CtmProperties {
 							if (min <= max) {
 								try {
 									for (int tile = min; tile <= max; tile++) {
-										listBuilder.add(new Identifier(resourceId.getNamespace(), basePath + tile + ".png"));
+										listBuilder.add(resourceId.withPath(basePath + tile + ".png"));
 									}
 								} catch (InvalidIdentifierException e) {
 									ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'", e);
@@ -269,7 +269,7 @@ public class BaseCtmProperties implements CtmProperties {
 						}
 
 						try {
-							listBuilder.add(new Identifier(namespace, path));
+							listBuilder.add(Identifier.of(namespace, path));
 						} catch (InvalidIdentifierException e) {
 							ContinuityClient.LOGGER.warn("Invalid 'tiles' element '" + tileStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'", e);
 						}
@@ -353,7 +353,7 @@ public class BaseCtmProperties implements CtmProperties {
 					}
 
 					try {
-						Identifier biomeId = new Identifier(biomeStr.toLowerCase(Locale.ROOT));
+						Identifier biomeId = Identifier.of(biomeStr.toLowerCase(Locale.ROOT));
 						biomeHolderSet.add(BiomeHolderManager.getOrCreateHolder(biomeId));
 					} catch (InvalidIdentifierException e) {
 						ContinuityClient.LOGGER.warn("Invalid 'biomes' element '" + biomeStr + "' at index " + i + " in file '" + resourceId + "' in pack '" + packName + "'", e);
@@ -584,7 +584,7 @@ public class BaseCtmProperties implements CtmProperties {
 					String resourceStr = parts[0];
 					Identifier resourceId;
 					try {
-						resourceId = new Identifier(resourceStr);
+						resourceId = Identifier.of(resourceStr);
 					} catch (InvalidIdentifierException e) {
 						ContinuityClient.LOGGER.warn("Invalid resource '" + resourceStr + "' in 'resourceCondition' element '" + conditionStr + "' at index " + i + " in file '" + this.resourceId + "' in pack '" + packName + "'", e);
 						continue;
@@ -643,12 +643,12 @@ public class BaseCtmProperties implements CtmProperties {
 						path = path.substring(0, path.length() - 4);
 					}
 
-					spriteId = TextureUtil.toSpriteId(new Identifier(namespace, path));
+					spriteId = TextureUtil.toSpriteId(Identifier.of(namespace, path));
 					textureDependencies.add(spriteId);
 				} else if (redirectHandler != null) {
 					path = redirectHandler.getSourceSpritePath(path);
 
-					spriteId = TextureUtil.toSpriteId(new Identifier(namespace, path));
+					spriteId = TextureUtil.toSpriteId(Identifier.of(namespace, path));
 					textureDependencies.add(spriteId);
 				} else {
 					spriteId = TextureUtil.MISSING_SPRITE_ID;

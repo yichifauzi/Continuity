@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 import me.pepperbell.continuity.api.client.ProcessingDataProvider;
 import me.pepperbell.continuity.client.properties.BaseCtmProperties;
-import me.pepperbell.continuity.client.util.biome.BiomeRetriever;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
@@ -78,13 +77,14 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	public static class BiomeCache {
+		@Nullable
 		protected Biome biome;
 		protected boolean invalid = true;
 
 		@Nullable
 		public Biome get(BlockRenderView blockView, BlockPos pos) {
 			if (invalid) {
-				biome = BiomeRetriever.getBiome(blockView, pos);
+				biome = blockView.hasBiomes() ? blockView.getBiomeFabric(pos).value() : null;
 				invalid = false;
 			}
 			return biome;
@@ -96,6 +96,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	public static class BlockEntityNameCache {
+		@Nullable
 		protected String blockEntityName;
 		protected boolean invalid = true;
 

@@ -88,7 +88,7 @@ public class ResourceRedirectHandler {
 
 		BooleanState invalidIdentifierState = InvalidIdentifierStateHolder.get();
 		invalidIdentifierState.enable();
-		Identifier newId = new Identifier(id.getNamespace(), newPath);
+		Identifier newId = id.withPath(newPath);
 		invalidIdentifierState.disable();
 
 		return newId;

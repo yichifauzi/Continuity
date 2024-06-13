@@ -97,7 +97,7 @@ public final class PropertiesParsingHelper {
 					}
 
 					try {
-						set.add(new Identifier(namespace, path));
+						set.add(Identifier.of(namespace, path));
 					} catch (InvalidIdentifierException e) {
 						ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + matchTileStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'", e);
 					}
@@ -137,10 +137,10 @@ public final class PropertiesParsingHelper {
 					int startIndex;
 					try {
 						if (parts.length == 1 || parts[1].contains("=")) {
-							blockId = new Identifier(parts[0]);
+							blockId = Identifier.ofVanilla(parts[0]);
 							startIndex = 1;
 						} else {
-							blockId = new Identifier(parts[0], parts[1]);
+							blockId = Identifier.of(parts[0], parts[1]);
 							startIndex = 2;
 						}
 					} catch (InvalidIdentifierException e) {
