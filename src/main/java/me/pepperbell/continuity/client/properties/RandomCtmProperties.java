@@ -67,7 +67,7 @@ public class RandomCtmProperties extends BaseCtmProperties {
 				} catch (NumberFormatException e) {
 					//
 				}
-				ContinuityClient.LOGGER.warn("Invalid 'weights' element '" + weightStr + "' at index '" + i + "' in file '" + resourceId + "' in pack '" + packName + "'");
+				ContinuityClient.LOGGER.warn("Invalid 'weights' element '" + weightStr + "' at index '" + i + "' in file '" + resourceId + "' in pack '" + packId + "'");
 			}
 
 			if (!weights.isEmpty()) {
@@ -91,11 +91,11 @@ public class RandomCtmProperties extends BaseCtmProperties {
 		} catch (NumberFormatException e) {
 			//
 		}
-		ContinuityClient.LOGGER.warn("Invalid 'randomLoops' value '" + randomLoopsStr + "' in file '" + resourceId + "' in pack '" + packName + "'");
+		ContinuityClient.LOGGER.warn("Invalid 'randomLoops' value '" + randomLoopsStr + "' in file '" + resourceId + "' in pack '" + packId + "'");
 	}
 
 	protected void parseSymmetry() {
-		Symmetry symmetry = PropertiesParsingHelper.parseSymmetry(properties, "symmetry", resourceId, packName);
+		Symmetry symmetry = PropertiesParsingHelper.parseSymmetry(properties, "symmetry", resourceId, packId);
 		if (symmetry != null) {
 			this.symmetry = symmetry;
 		}

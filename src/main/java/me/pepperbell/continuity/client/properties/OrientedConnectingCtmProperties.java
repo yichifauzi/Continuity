@@ -26,7 +26,7 @@ public class OrientedConnectingCtmProperties extends ConnectingCtmProperties {
 	}
 
 	protected void parseOrient() {
-		OrientationMode orientationMode = PropertiesParsingHelper.parseOrientationMode(properties, "orient", resourceId, packName);
+		OrientationMode orientationMode = PropertiesParsingHelper.parseOrientationMode(properties, "orient", resourceId, packId);
 		if (orientationMode != null) {
 			this.orientationMode = orientationMode;
 		}

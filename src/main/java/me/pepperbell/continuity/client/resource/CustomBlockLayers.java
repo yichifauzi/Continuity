@@ -76,10 +76,10 @@ public final class CustomBlockLayers {
 		}
 	}
 
-	private static void reload(Properties properties, Identifier fileLocation, String packName) {
+	private static void reload(Properties properties, Identifier fileLocation, String packId) {
 		for (BlockLayer blockLayer : BlockLayer.VALUES) {
 			String propertyKey = "layer." + blockLayer.getKey();
-			Predicate<BlockState> predicate = PropertiesParsingHelper.parseBlockStates(properties, propertyKey, fileLocation, packName);
+			Predicate<BlockState> predicate = PropertiesParsingHelper.parseBlockStates(properties, propertyKey, fileLocation, packId);
 			if (predicate != null && predicate != PropertiesParsingHelper.EMPTY_BLOCK_STATE_PREDICATE) {
 				LAYER_PREDICATES[blockLayer.ordinal()] = predicate;
 				empty = false;

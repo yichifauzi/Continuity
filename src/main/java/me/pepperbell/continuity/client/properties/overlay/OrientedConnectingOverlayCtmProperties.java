@@ -11,9 +11,9 @@ import net.minecraft.util.Identifier;
 public class OrientedConnectingOverlayCtmProperties extends OrientedConnectingCtmProperties implements OverlayPropertiesSection.Provider {
 	protected OverlayPropertiesSection overlaySection;
 
-	public OrientedConnectingOverlayCtmProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method, OrientationMode defaultOrientationMode) {
-		super(properties, id, pack, packPriority, resourceManager, method, defaultOrientationMode);
-		overlaySection = new OverlayPropertiesSection(properties, id, packName);
+	public OrientedConnectingOverlayCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method, OrientationMode defaultOrientationMode) {
+		super(properties, resourceId, pack, packPriority, resourceManager, method, defaultOrientationMode);
+		overlaySection = new OverlayPropertiesSection(properties, resourceId, packId);
 	}
 
 	public OrientedConnectingOverlayCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {

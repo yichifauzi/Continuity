@@ -78,6 +78,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	public static class BiomeCache {
+		@Nullable
 		protected Biome biome;
 		protected boolean invalid = true;
 
@@ -96,6 +97,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	public static class BlockEntityNameCache {
+		@Nullable
 		protected String blockEntityName;
 		protected boolean invalid = true;
 
