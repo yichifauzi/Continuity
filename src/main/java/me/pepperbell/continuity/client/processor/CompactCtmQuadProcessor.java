@@ -69,11 +69,11 @@ public class CompactCtmQuadProcessor extends AbstractQuadProcessor {
 	}
 
 	@Override
-	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
-		int orientation = orientationMode.getOrientation(quad, state);
+	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
+		int orientation = orientationMode.getOrientation(quad, appearanceState);
 		Direction[] directions = DirectionMaps.getMap(quad.lightFace())[orientation];
-		BlockPos.Mutable mutablePos = context.getData(ProcessingDataKeys.MUTABLE_POS_KEY);
-		int connections = CtmSpriteProvider.getConnections(connectionPredicate, innerSeams, directions, mutablePos, blockView, state, pos, quad.lightFace(), sprite);
+		BlockPos.Mutable mutablePos = context.getData(ProcessingDataKeys.MUTABLE_POS);
+		int connections = CtmSpriteProvider.getConnections(directions, connectionPredicate, innerSeams, mutablePos, blockView, appearanceState, state, pos, quad.lightFace(), sprite);
 
 		//
 
@@ -157,7 +157,7 @@ public class CompactCtmQuadProcessor extends AbstractQuadProcessor {
 				return ProcessingResult.STOP;
 			}
 
-			VertexContainer vertexContainer = context.getData(ProcessingDataKeys.VERTEX_CONTAINER_KEY);
+			VertexContainer vertexContainer = context.getData(ProcessingDataKeys.VERTEX_CONTAINER);
 			vertexContainer.fillBaseVertices(quad);
 
 			QuadEmitter extraQuadEmitter = context.getExtraQuadEmitter();
@@ -385,7 +385,7 @@ public class CompactCtmQuadProcessor extends AbstractQuadProcessor {
 				spriteIndexB = temp;
 			}
 
-			VertexContainer vertexContainer = context.getData(ProcessingDataKeys.VERTEX_CONTAINER_KEY);
+			VertexContainer vertexContainer = context.getData(ProcessingDataKeys.VERTEX_CONTAINER);
 			vertexContainer.fillBaseVertices(quad);
 
 			QuadEmitter extraQuadEmitter = context.getExtraQuadEmitter();

@@ -24,8 +24,8 @@ public class OverlayProcessingPredicate extends BaseProcessingPredicate {
 	}
 
 	@Override
-	public boolean shouldProcessQuad(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, ProcessingDataProvider dataProvider) {
-		if (!super.shouldProcessQuad(quad, sprite, blockView, state, pos, dataProvider)) {
+	public boolean shouldProcessQuad(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, ProcessingDataProvider dataProvider) {
+		if (!super.shouldProcessQuad(quad, sprite, blockView, appearanceState, state, pos, dataProvider)) {
 			return false;
 		}
 		return QuadUtil.isQuadUnitSquare(quad);
