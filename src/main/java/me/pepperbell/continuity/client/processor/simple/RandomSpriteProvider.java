@@ -36,26 +36,26 @@ public class RandomSpriteProvider implements SpriteProvider {
 
 	@Override
 	@Nullable
-	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
-		Direction face = symmetry.apply(quad.lightFace());
+	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
+		Direction face = quad.lightFace();
 
 		int x = pos.getX();
 		int y = pos.getY();
 		int z = pos.getZ();
 
 		if (linked) {
-			Block block = state.getBlock();
-			BlockPos.Mutable mutablePos = dataProvider.getData(ProcessingDataKeys.MUTABLE_POS_KEY).set(pos);
+			Block block = appearanceState.getBlock();
+			BlockPos.Mutable mutablePos = dataProvider.getData(ProcessingDataKeys.MUTABLE_POS).set(pos);
 
 			int i = 0;
 			do {
 				mutablePos.setY(mutablePos.getY() - 1);
 				i++;
-			} while (i < 3 && block == blockView.getBlockState(mutablePos).getBlock());
+			} while (i < 3 && block == blockView.getBlockState(mutablePos).getAppearance(blockView, mutablePos, face, state, pos).getBlock());
 			y = mutablePos.getY() + 1;
 		}
 
-		int seed = MathUtil.mix(x, y, z, face.ordinal(), randomLoops);
+		int seed = MathUtil.mix(x, y, z, symmetry.apply(face).ordinal(), randomLoops);
 		return sprites[indexProvider.getRandomIndex(seed)];
 	}
 
