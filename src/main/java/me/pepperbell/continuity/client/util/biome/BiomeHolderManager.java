@@ -44,7 +44,7 @@ public final class BiomeHolderManager {
 			String path = id.getPath();
 			String compactPath = path.replace("_", "");
 			if (!path.equals(compactPath)) {
-				Identifier compactId = new Identifier(id.getNamespace(), compactPath);
+				Identifier compactId = id.withPath(compactPath);
 				if (!biomeRegistry.containsId(compactId)) {
 					compactIdMap.put(compactId, id);
 				}

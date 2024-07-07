@@ -21,9 +21,9 @@ public class StandardOverlayCtmProperties extends BasicConnectingCtmProperties i
 	@Nullable
 	protected Predicate<BlockState> connectBlocksPredicate;
 
-	public StandardOverlayCtmProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
-		super(properties, id, pack, packPriority, resourceManager, method);
-		overlaySection = new OverlayPropertiesSection(properties, id, packName);
+	public StandardOverlayCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, resourceId, pack, packPriority, resourceManager, method);
+		overlaySection = new OverlayPropertiesSection(properties, resourceId, packId);
 	}
 
 	@Override
@@ -40,11 +40,11 @@ public class StandardOverlayCtmProperties extends BasicConnectingCtmProperties i
 	}
 
 	protected void parseConnectTiles() {
-		connectTilesSet = PropertiesParsingHelper.parseMatchTiles(properties, "connectTiles", resourceId, packName, ResourceRedirectHandler.get(resourceManager));
+		connectTilesSet = PropertiesParsingHelper.parseMatchTiles(properties, "connectTiles", resourceId, packId, ResourceRedirectHandler.get(resourceManager));
 	}
 
 	protected void parseConnectBlocks() {
-		connectBlocksPredicate = PropertiesParsingHelper.parseBlockStates(properties, "connectBlocks", resourceId, packName);
+		connectBlocksPredicate = PropertiesParsingHelper.parseBlockStates(properties, "connectBlocks", resourceId, packId);
 	}
 
 	@Nullable

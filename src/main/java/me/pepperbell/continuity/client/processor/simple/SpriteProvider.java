@@ -15,7 +15,7 @@ import net.minecraft.world.BlockRenderView;
 
 public interface SpriteProvider {
 	@Nullable
-	Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider);
+	Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider);
 
 	interface Factory<T extends BaseCtmProperties> {
 		SpriteProvider createSpriteProvider(Sprite[] sprites, T properties);

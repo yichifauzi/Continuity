@@ -41,18 +41,18 @@ public class VerticalSpriteProvider implements SpriteProvider {
 
 	@Override
 	@Nullable
-	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
-		Direction[] directions = DirectionMaps.getDirections(orientationMode, quad, state);
-		BlockPos.Mutable mutablePos = dataProvider.getData(ProcessingDataKeys.MUTABLE_POS_KEY);
-		int connections = getConnections(directions, mutablePos, blockView, state, pos, quad.lightFace(), sprite);
+	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
+		Direction[] directions = DirectionMaps.getDirections(orientationMode, quad, appearanceState);
+		BlockPos.Mutable mutablePos = dataProvider.getData(ProcessingDataKeys.MUTABLE_POS);
+		int connections = getConnections(directions, mutablePos, blockView, appearanceState, state, pos, quad.lightFace(), sprite);
 		return sprites[SPRITE_INDEX_MAP[connections]];
 	}
 
-	protected int getConnections(Direction[] directions, BlockPos.Mutable mutablePos, BlockRenderView blockView, BlockState state, BlockPos pos, Direction face, Sprite quadSprite) {
+	protected int getConnections(Direction[] directions, BlockPos.Mutable mutablePos, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Direction face, Sprite quadSprite) {
 		int connections = 0;
 		for (int i = 0; i < 2; i++) {
 			mutablePos.set(pos, directions[i * 2 + 1]);
-			if (connectionPredicate.shouldConnect(blockView, state, pos, mutablePos, face, quadSprite, innerSeams)) {
+			if (connectionPredicate.shouldConnect(blockView, appearanceState, state, pos, mutablePos, face, quadSprite, innerSeams)) {
 				connections |= 1 << i;
 			}
 		}
