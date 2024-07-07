@@ -38,7 +38,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	@Override
-	public boolean shouldProcessQuad(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, ProcessingDataProvider dataProvider) {
+	public boolean shouldProcessQuad(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, ProcessingDataProvider dataProvider) {
 		if (heightPredicate != null) {
 			if (!heightPredicate.test(pos.getY())) {
 				return false;
@@ -46,8 +46,8 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 		}
 		if (faces != null) {
 			Direction face = quad.lightFace();
- 			if (state.contains(Properties.AXIS)) {
- 				Direction.Axis axis = state.get(Properties.AXIS);
+ 			if (appearanceState.contains(Properties.AXIS)) {
+ 				Direction.Axis axis = appearanceState.get(Properties.AXIS);
  				if (axis == Direction.Axis.X) {
  					face = face.rotateClockwise(Direction.Axis.Z);
 				} else if (axis == Direction.Axis.Z) {
@@ -59,13 +59,13 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 			}
 		}
 		if (biomePredicate != null) {
-			Biome biome = dataProvider.getData(ProcessingDataKeys.BIOME_CACHE_KEY).get(blockView, pos);
+			Biome biome = dataProvider.getData(ProcessingDataKeys.BIOME_CACHE).get(blockView, pos);
 			if (biome == null || !biomePredicate.test(biome)) {
 				return false;
 			}
 		}
 		if (blockEntityNamePredicate != null) {
-			String blockEntityName = dataProvider.getData(ProcessingDataKeys.BLOCK_ENTITY_NAME_CACHE_KEY).get(blockView, pos);
+			String blockEntityName = dataProvider.getData(ProcessingDataKeys.BLOCK_ENTITY_NAME_CACHE).get(blockView, pos);
 			if (blockEntityName == null || !blockEntityNamePredicate.test(blockEntityName)) {
 				return false;
 			}
@@ -78,6 +78,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	public static class BiomeCache {
+		@Nullable
 		protected Biome biome;
 		protected boolean invalid = true;
 
@@ -96,6 +97,7 @@ public class BaseProcessingPredicate implements ProcessingPredicate {
 	}
 
 	public static class BlockEntityNameCache {
+		@Nullable
 		protected String blockEntityName;
 		protected boolean invalid = true;
 
