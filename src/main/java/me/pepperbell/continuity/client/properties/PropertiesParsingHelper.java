@@ -35,7 +35,7 @@ public final class PropertiesParsingHelper {
 	public static final Predicate<BlockState> EMPTY_BLOCK_STATE_PREDICATE = state -> false;
 
 	@Nullable
-	public static Set<Identifier> parseMatchTiles(Properties properties, String propertyKey, Identifier fileLocation, String packName, @Nullable ResourceRedirectHandler redirectHandler) {
+	public static Set<Identifier> parseMatchTiles(Properties properties, String propertyKey, Identifier fileLocation, String packId, @Nullable ResourceRedirectHandler redirectHandler) {
 		String matchTilesStr = properties.getProperty(propertyKey);
 		if (matchTilesStr == null) {
 			return null;
@@ -101,10 +101,10 @@ public final class PropertiesParsingHelper {
 					try {
 						set.add(new Identifier(namespace, path));
 					} catch (InvalidIdentifierException e) {
-						ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + matchTileStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'", e);
+						ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + matchTileStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'", e);
 					}
 				} else {
-					ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + matchTileStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'");
+					ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + matchTileStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'");
 				}
 			}
 
@@ -115,7 +115,7 @@ public final class PropertiesParsingHelper {
 	}
 
 	@Nullable
-	public static Predicate<BlockState> parseBlockStates(Properties properties, String propertyKey, Identifier fileLocation, String packName) {
+	public static Predicate<BlockState> parseBlockStates(Properties properties, String propertyKey, Identifier fileLocation, String packId) {
 		String blockStatesStr = properties.getProperty(propertyKey);
 		if (blockStatesStr == null) {
 			return null;
@@ -146,7 +146,7 @@ public final class PropertiesParsingHelper {
 							startIndex = 2;
 						}
 					} catch (InvalidIdentifierException e) {
-						ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'", e);
+						ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'", e);
 						continue;
 					}
 
@@ -174,20 +174,20 @@ public final class PropertiesParsingHelper {
 														if (optionalValue.isPresent()) {
 															valueSet.add(optionalValue.get());
 														} else {
-															ContinuityClient.LOGGER.warn("Invalid block property value '" + propertyValueStr + "' for property '" + propertyName + "' for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'");
+															ContinuityClient.LOGGER.warn("Invalid block property value '" + propertyValueStr + "' for property '" + propertyName + "' for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'");
 															continue Block;
 														}
 													}
 												} else {
-													ContinuityClient.LOGGER.warn("Invalid block property definition for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'");
+													ContinuityClient.LOGGER.warn("Invalid block property definition for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'");
 													continue Block;
 												}
 											} else {
-												ContinuityClient.LOGGER.warn("Unknown block property '" + propertyName + "' for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'");
+												ContinuityClient.LOGGER.warn("Unknown block property '" + propertyName + "' for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'");
 												continue Block;
 											}
 										} else {
-											ContinuityClient.LOGGER.warn("Invalid block property definition for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'");
+											ContinuityClient.LOGGER.warn("Invalid block property definition for block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'");
 											continue Block;
 										}
 									}
@@ -214,10 +214,10 @@ public final class PropertiesParsingHelper {
 							}
 						}
 					} else {
-						ContinuityClient.LOGGER.warn("Unknown block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'");
+						ContinuityClient.LOGGER.warn("Unknown block '" + blockId + "' in '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'");
 					}
 				} else {
-					ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packName + "'");
+					ContinuityClient.LOGGER.warn("Invalid '" + propertyKey + "' element '" + blockStateStr + "' at index " + i + " in file '" + fileLocation + "' in pack '" + packId + "'");
 				}
 			}
 
@@ -266,7 +266,7 @@ public final class PropertiesParsingHelper {
 	}
 
 	@Nullable
-	public static Symmetry parseSymmetry(Properties properties, String propertyKey, Identifier fileLocation, String packName) {
+	public static Symmetry parseSymmetry(Properties properties, String propertyKey, Identifier fileLocation, String packId) {
 		String symmetryStr = properties.getProperty(propertyKey);
 		if (symmetryStr == null) {
 			return null;
@@ -275,13 +275,13 @@ public final class PropertiesParsingHelper {
 		try {
 			return Symmetry.valueOf(symmetryStr.trim().toUpperCase(Locale.ROOT));
 		} catch (IllegalArgumentException e) {
-			ContinuityClient.LOGGER.warn("Unknown '" + propertyKey + "' value '" + symmetryStr + "' in file '" + fileLocation + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.warn("Unknown '" + propertyKey + "' value '" + symmetryStr + "' in file '" + fileLocation + "' in pack '" + packId + "'");
 		}
 		return null;
 	}
 
 	@Nullable
-	public static OrientationMode parseOrientationMode(Properties properties, String propertyKey, Identifier fileLocation, String packName) {
+	public static OrientationMode parseOrientationMode(Properties properties, String propertyKey, Identifier fileLocation, String packId) {
 		String orientationModeStr = properties.getProperty(propertyKey);
 		if (orientationModeStr == null) {
 			return null;
@@ -290,7 +290,7 @@ public final class PropertiesParsingHelper {
 		try {
 			return OrientationMode.valueOf(orientationModeStr.trim().toUpperCase(Locale.ROOT));
 		} catch (IllegalArgumentException e) {
-			ContinuityClient.LOGGER.warn("Unknown '" + propertyKey + "' value '" + orientationModeStr + "' in file '" + fileLocation + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.warn("Unknown '" + propertyKey + "' value '" + orientationModeStr + "' in file '" + fileLocation + "' in pack '" + packId + "'");
 		}
 		return null;
 	}

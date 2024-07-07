@@ -33,7 +33,7 @@ public class RepeatSpriteProvider implements SpriteProvider {
 
 	@Override
 	@Nullable
-	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
+	public Sprite getSprite(QuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, ProcessingDataProvider dataProvider) {
 		Direction face = symmetry.apply(quad.lightFace());
 
 		int x = pos.getX();
@@ -77,7 +77,7 @@ public class RepeatSpriteProvider implements SpriteProvider {
 			}
 		}
 
-		switch (orientationMode.getOrientation(quad, state)) {
+		switch (orientationMode.getOrientation(quad, appearanceState)) {
 			case 1 -> {
 				int temp = spriteX;
 				spriteX = -spriteY - 1;

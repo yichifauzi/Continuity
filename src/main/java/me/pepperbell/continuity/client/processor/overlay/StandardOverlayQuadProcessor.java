@@ -34,7 +34,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
-import net.minecraft.world.EmptyBlockView;
 
 public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 	@Nullable
@@ -63,142 +62,140 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 		this.tintIndex = tintIndex;
 		this.tintBlock = tintBlock;
 		material = RenderUtil.findOverlayMaterial(layer, this.tintBlock);
+
+		// Turn all missing sprites into null, since it is more efficient to check for a null sprite than a missing
+		// sprite. There is no functional difference between missing and null sprites for this processor.
+		for (int i = 0; i < sprites.length; i++) {
+			Sprite sprite = sprites[i];
+			if (TextureUtil.isMissingSprite(sprite)) {
+				sprites[i] = null;
+			}
+		}
 	}
 
 	@Override
-	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
+	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
 		Direction lightFace = quad.lightFace();
-		OverlayEmitter emitter = getEmitter(blockView, pos, state, lightFace, sprite, DirectionMaps.getMap(lightFace)[0], context);
+		OverlayEmitter emitter = getEmitter(blockView, appearanceState, state, pos, lightFace, sprite, DirectionMaps.getMap(lightFace)[0], context);
 		if (emitter != null) {
 			context.addEmitterConsumer(emitter);
 		}
 		return ProcessingResult.NEXT_PROCESSOR;
 	}
 
-	protected boolean appliesOverlay(BlockState other, BlockRenderView blockView, BlockState state, BlockPos pos, Direction face, Sprite quadSprite) {
-		if (other.getBlock().hasDynamicBounds()) {
-			return false;
-		}
-		if (!other.isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)) {
+	protected boolean appliesOverlay(BlockState otherAppearanceState, BlockState otherState, BlockPos otherPos, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Direction face, Sprite quadSprite) {
+		// OptiFine never applies overlays from blocks with dynamic bounds. To improve mod compatibility, call
+		// isFullCube with the correct values and do not check for dynamic bounds explicitly. For vanilla blocks, this
+		// change only makes it so retracted pistons and shulker boxes can apply overlays.
+		if (!otherState.isFullCube(blockView, otherPos)) {
 			return false;
 		}
 		if (connectBlocksPredicate != null) {
-			if (!connectBlocksPredicate.test(other)) {
+			if (!connectBlocksPredicate.test(otherAppearanceState)) {
 				return false;
 			}
 		}
 		if (connectTilesSet != null) {
-			if (!connectTilesSet.contains(SpriteCalculator.getSprite(other, face).getContents().getId())) {
+			if (!connectTilesSet.contains(SpriteCalculator.getSprite(otherAppearanceState, face).getContents().getId())) {
 				return false;
 			}
 		}
-		return !connectionPredicate.shouldConnect(blockView, state, pos, other, face, quadSprite);
+		return !connectionPredicate.shouldConnect(blockView, appearanceState, state, pos, otherAppearanceState, otherState, otherPos, face, quadSprite);
 	}
 
-	protected boolean hasSameOverlay(BlockState other, BlockRenderView blockView, BlockState state, BlockPos pos, Direction face, Sprite quadSprite) {
+	protected boolean hasSameOverlay(@Nullable BlockState otherAppearanceState, Direction face) {
+		if (otherAppearanceState == null) {
+			return false;
+		}
 		if (matchBlocksPredicate != null) {
-			if (!matchBlocksPredicate.test(other)) {
+			if (!matchBlocksPredicate.test(otherAppearanceState)) {
 				return false;
 			}
 		}
 		if (matchTilesSet != null) {
-			if (!matchTilesSet.contains(SpriteCalculator.getSprite(other, face).getContents().getId())) {
+			if (!matchTilesSet.contains(SpriteCalculator.getSprite(otherAppearanceState, face).getContents().getId())) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-	protected boolean appliesOverlayUnobscured(BlockState state0, Direction direction0, BlockRenderView blockView, BlockPos pos, BlockState state, Direction lightFace, Sprite quadSprite, BlockPos.Mutable mutablePos) {
-		boolean a0 = appliesOverlay(state0, blockView, state, pos, lightFace, quadSprite);
-		if (a0) {
-			mutablePos.set(pos, direction0).move(lightFace);
-			a0 = !blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos);
-		}
-		return a0;
-	}
-
-	protected boolean hasSameOverlayUnobscured(BlockState state0, Direction direction0, BlockRenderView blockView, BlockPos pos, BlockState state, Direction lightFace, Sprite quadSprite, BlockPos.Mutable mutablePos) {
-		boolean s0 = hasSameOverlay(state0, blockView, state, pos, lightFace, quadSprite);
-		if (s0) {
-			mutablePos.set(pos, direction0).move(lightFace);
-			s0 = !blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos);
-		}
-		return s0;
-	}
-
-	protected boolean appliesOverlayCorner(Direction direction0, Direction direction1, BlockRenderView blockView, BlockPos pos, BlockState state, Direction lightFace, Sprite quadSprite, BlockPos.Mutable mutablePos) {
-		mutablePos.set(pos, direction0).move(direction1);
-		boolean corner0 = appliesOverlay(blockView.getBlockState(mutablePos), blockView, state, pos, lightFace, quadSprite);
-		if (corner0) {
+	protected boolean appliesOverlayCorner(Direction dir0, Direction dir1, BlockPos.Mutable mutablePos, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Direction lightFace, Sprite quadSprite) {
+		mutablePos.set(pos, dir0).move(dir1);
+		BlockState otherState = blockView.getBlockState(mutablePos);
+		BlockState otherAppearanceState = otherState.getAppearance(blockView, mutablePos, lightFace, state, pos);
+		if (appliesOverlay(otherAppearanceState, otherState, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
 			mutablePos.move(lightFace);
-			corner0 = !blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos);
+			return !blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos);
 		}
-		return corner0;
+		return false;
 	}
 
-	protected OverlayEmitter fromCorner(Direction direction0, Direction direction1, int sprite0, int sprite1, OverlayEmitter emitter, BlockRenderView blockView, BlockPos pos, BlockState state, Direction lightFace, Sprite quadSprite, BlockPos.Mutable mutablePos) {
+	protected OverlayEmitter fromTwoSidesAdj(OverlayEmitter emitter, @Nullable BlockState appearanceState0, @Nullable BlockState appearanceState1, Direction dir0, Direction dir1, int sprite, int spriteC01, BlockPos.Mutable mutablePos, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Direction lightFace, Sprite quadSprite) {
 		prepareEmitter(emitter, lightFace, blockView, pos);
-		emitter.addSprite(sprites[sprite0]);
-		mutablePos.set(pos, direction0).move(direction1);
-		if (appliesOverlay(blockView.getBlockState(mutablePos), blockView, state, pos, lightFace, quadSprite)) {
-			mutablePos.move(lightFace);
-			if (!blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos)) {
-				emitter.addSprite(sprites[sprite1]);
-			}
+		emitter.addSprite(sprites[sprite]);
+		// OptiFine does not check whether the other two adjacent blocks have the same overlay before trying to apply
+		// the corner overlay. I consider this a bug since it is inconsistent with other cases, so it is fixed here by
+		// checking those blocks.
+		if ((hasSameOverlay(appearanceState0, lightFace)
+				|| hasSameOverlay(appearanceState1, lightFace))
+				&& appliesOverlayCorner(dir0, dir1, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
+			emitter.addSprite(sprites[spriteC01]);
 		}
 		return emitter;
 	}
 
-	protected OverlayEmitter fromOneSide(BlockState state0, BlockState state1, BlockState state2, Direction direction0, Direction direction1, Direction direction2, int sprite0, int sprite1, int sprite2, OverlayEmitter emitter, BlockRenderView blockView, BlockPos pos, BlockState state, Direction lightFace, Sprite quadSprite, BlockPos.Mutable mutablePos) {
-		boolean s0 = hasSameOverlayUnobscured(state0, direction0, blockView, pos, state, lightFace, quadSprite, mutablePos);
-		boolean s1 = hasSameOverlayUnobscured(state1, direction1, blockView, pos, state, lightFace, quadSprite, mutablePos);
-		boolean s2 = hasSameOverlayUnobscured(state2, direction2, blockView, pos, state, lightFace, quadSprite, mutablePos);
+	protected OverlayEmitter fromOneSide(OverlayEmitter emitter, @Nullable BlockState appearanceState0, @Nullable BlockState appearanceState1, @Nullable BlockState appearanceState2, Direction dir0, Direction dir1, Direction dir2, int sprite, int spriteC01, int spriteC12, BlockPos.Mutable mutablePos, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Direction lightFace, Sprite quadSprite) {
+		boolean c01;
+		boolean c12;
+		if (hasSameOverlay(appearanceState1, lightFace)) {
+			c01 = true;
+			c12 = true;
+		} else {
+			c01 = hasSameOverlay(appearanceState0, lightFace);
+			c12 = hasSameOverlay(appearanceState2, lightFace);
+		}
 
 		prepareEmitter(emitter, lightFace, blockView, pos);
-		emitter.addSprite(sprites[sprite0]);
-		if (s0 | s1) {
-			if (appliesOverlayCorner(direction0, direction1, blockView, pos, state, lightFace, quadSprite, mutablePos)) {
-				emitter.addSprite(sprites[sprite1]);
-			}
+		emitter.addSprite(sprites[sprite]);
+		if (c01 && appliesOverlayCorner(dir0, dir1, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
+			emitter.addSprite(sprites[spriteC01]);
 		}
-		if (s1 | s2) {
-			if (appliesOverlayCorner(direction1, direction2, blockView, pos, state, lightFace, quadSprite, mutablePos)) {
-				emitter.addSprite(sprites[sprite2]);
-			}
+		if (c12 && appliesOverlayCorner(dir1, dir2, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
+			emitter.addSprite(sprites[spriteC12]);
 		}
 		return emitter;
 	}
 
 	protected static OverlayEmitter getEmitter(ProcessingDataProvider dataProvider) {
-		return dataProvider.getData(ProcessingDataKeys.STANDARD_OVERLAY_EMITTER_POOL_KEY).get();
+		return dataProvider.getData(ProcessingDataKeys.STANDARD_OVERLAY_EMITTER_POOL).get();
 	}
 
 	protected void prepareEmitter(OverlayEmitter emitter, Direction face, BlockRenderView blockView, BlockPos pos) {
 		emitter.prepare(face, RenderUtil.getTintColor(tintBlock, blockView, pos, tintIndex), material);
 	}
 
-	protected OverlayEmitter prepareEmitter(OverlayEmitter emitter, Direction face, BlockRenderView blockView, BlockPos pos, int sprite1) {
+	protected OverlayEmitter prepareEmitter(OverlayEmitter emitter, Direction face, BlockRenderView blockView, BlockPos pos, int sprite0) {
 		prepareEmitter(emitter, face, blockView, pos);
-		emitter.addSprite(sprites[sprite1]);
+		emitter.addSprite(sprites[sprite0]);
 		return emitter;
 	}
 
-	protected OverlayEmitter prepareEmitter(OverlayEmitter emitter, Direction face, BlockRenderView blockView, BlockPos pos, int sprite1, int sprite2) {
+	protected OverlayEmitter prepareEmitter(OverlayEmitter emitter, Direction face, BlockRenderView blockView, BlockPos pos, int sprite0, int sprite1) {
 		prepareEmitter(emitter, face, blockView, pos);
+		emitter.addSprite(sprites[sprite0]);
 		emitter.addSprite(sprites[sprite1]);
-		emitter.addSprite(sprites[sprite2]);
 		return emitter;
 	}
 
 	/*
-	0:	D R (CORNER)
+	0:	CORNER D+R
 	1:	D
-	2:	L D (CORNER)
+	2:	CORNER L+D
 	3:	D R
 	4:	L D
 	5:	L D R
-	6:	L D T
+	6:	L D U
 	7:	R
 	8:	L D R U
 	9:	L
@@ -206,127 +203,126 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 	11:	L U
 	12:	D R U
 	13:	L R U
-	14:	R U (CORNER)
+	14:	CORNER R+U
 	15:	U
-	16:	L U (CORNER)
+	16:	CORNER L+U
 	 */
 	@Nullable
-	protected OverlayEmitter getEmitter(BlockRenderView blockView, BlockPos pos, BlockState state, Direction lightFace, Sprite quadSprite, Direction[] directions, ProcessingDataProvider dataProvider) {
-		BlockPos.Mutable mutablePos = dataProvider.getData(ProcessingDataKeys.MUTABLE_POS_KEY);
+	protected OverlayEmitter getEmitter(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Direction lightFace, Sprite quadSprite, Direction[] directions, ProcessingDataProvider dataProvider) {
+		BlockPos.Mutable mutablePos = dataProvider.getData(ProcessingDataKeys.MUTABLE_POS);
 
-		//
+		// [up] | [right] | [down] | [left]
+		//     8
+		// 1   *   4
+		//     2
+		int applications = 0;
 
-		mutablePos.set(pos, directions[0]);
-		BlockState state0 = blockView.getBlockState(mutablePos);
-		boolean left = appliesOverlayUnobscured(state0, directions[0], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		mutablePos.set(pos, directions[1]);
-		BlockState state1 = blockView.getBlockState(mutablePos);
-		boolean down = appliesOverlayUnobscured(state1, directions[1], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		mutablePos.set(pos, directions[2]);
-		BlockState state2 = blockView.getBlockState(mutablePos);
-		boolean right = appliesOverlayUnobscured(state2, directions[2], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		mutablePos.set(pos, directions[3]);
-		BlockState state3 = blockView.getBlockState(mutablePos);
-		boolean up = appliesOverlayUnobscured(state3, directions[3], blockView, pos, state, lightFace, quadSprite, mutablePos);
-
-		//
-
-		if (left & down & right & up) {
-			return prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 8);
-		}
-		if (left & down & right) {
-			return prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 5);
-		}
-		if (left & down & up) {
-			return prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 6);
-		}
-		if (left & right & up) {
-			return prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 13);
-		}
-		if (down & right & up) {
-			return prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 12);
-		}
-
-		if (left & right) {
-			return prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 9, 7);
-		}
-		if (up & down) {
-			return prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 15, 1);
-		}
-
-		if (left & down) {
-			return fromCorner(directions[2], directions[3], 4, 14, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (down & right) {
-			return fromCorner(directions[0], directions[3], 3, 16, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (right & up) {
-			return fromCorner(directions[0], directions[1], 10, 2, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (up & left) {
-			return fromCorner(directions[1], directions[2], 11, 0, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-
-		//
-
-		if (left) {
-			return fromOneSide(state1, state2, state3, directions[1], directions[2], directions[3], 9, 0, 14, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (down) {
-			return fromOneSide(state2, state3, state0, directions[2], directions[3], directions[0], 1, 14, 16, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (right) {
-			return fromOneSide(state3, state0, state1, directions[3], directions[0], directions[1], 7, 16, 2, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (up) {
-			return fromOneSide(state0, state1, state2, directions[0], directions[1], directions[2], 15, 2, 0, getEmitter(dataProvider), blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-
-		//
-
-		boolean s0 = hasSameOverlayUnobscured(state0, directions[0], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		boolean s1 = hasSameOverlayUnobscured(state1, directions[1], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		boolean s2 = hasSameOverlayUnobscured(state2, directions[2], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		boolean s3 = hasSameOverlayUnobscured(state3, directions[3], blockView, pos, state, lightFace, quadSprite, mutablePos);
-
-		boolean corner0 = false;
-		boolean corner1 = false;
-		boolean corner2 = false;
-		boolean corner3 = false;
-		if (s0 | s1) {
-			corner0 = appliesOverlayCorner(directions[0], directions[1], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (s1 | s2) {
-			corner1 = appliesOverlayCorner(directions[1], directions[2], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (s2 | s3) {
-			corner2 = appliesOverlayCorner(directions[2], directions[3], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-		if (s3 | s0) {
-			corner3 = appliesOverlayCorner(directions[3], directions[0], blockView, pos, state, lightFace, quadSprite, mutablePos);
-		}
-
-		if (corner0 | corner1 | corner2 | corner3) {
-			OverlayEmitter emitter = getEmitter(dataProvider);
-			prepareEmitter(emitter, lightFace, blockView, pos);
-			if (corner0) {
-				emitter.addSprite(sprites[2]);
+		mutablePos.set(pos, directions[0]).move(lightFace);
+		BlockState appearanceState0;
+		if (!blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos)) {
+			mutablePos.set(pos, directions[0]);
+			BlockState state0 = blockView.getBlockState(mutablePos);
+			appearanceState0 = state0.getAppearance(blockView, mutablePos, lightFace, state, pos);
+			if (appliesOverlay(appearanceState0, state0, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
+				applications |= 0b0001;
 			}
-			if (corner1) {
-				emitter.addSprite(sprites[0]);
-			}
-			if (corner2) {
-				emitter.addSprite(sprites[14]);
-			}
-			if (corner3) {
-				emitter.addSprite(sprites[16]);
-			}
-			return emitter;
+		} else {
+			appearanceState0 = null;
 		}
 
-		//
+		mutablePos.set(pos, directions[1]).move(lightFace);
+		BlockState appearanceState1;
+		if (!blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos)) {
+			mutablePos.set(pos, directions[1]);
+			BlockState state1 = blockView.getBlockState(mutablePos);
+			appearanceState1 = state1.getAppearance(blockView, mutablePos, lightFace, state, pos);
+			if (appliesOverlay(appearanceState1, state1, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
+				applications |= 0b0010;
+			}
+		} else {
+			appearanceState1 = null;
+		}
 
-		return null;
+		mutablePos.set(pos, directions[2]).move(lightFace);
+		BlockState appearanceState2;
+		if (!blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos)) {
+			mutablePos.set(pos, directions[2]);
+			BlockState state2 = blockView.getBlockState(mutablePos);
+			appearanceState2 = state2.getAppearance(blockView, mutablePos, lightFace, state, pos);
+			if (appliesOverlay(appearanceState2, state2, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
+				applications |= 0b0100;
+			}
+		} else {
+			appearanceState2 = null;
+		}
+
+		mutablePos.set(pos, directions[3]).move(lightFace);
+		BlockState appearanceState3;
+		if (!blockView.getBlockState(mutablePos).isOpaqueFullCube(blockView, mutablePos)) {
+			mutablePos.set(pos, directions[3]);
+			BlockState state3 = blockView.getBlockState(mutablePos);
+			appearanceState3 = state3.getAppearance(blockView, mutablePos, lightFace, state, pos);
+			if (appliesOverlay(appearanceState3, state3, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite)) {
+				applications |= 0b1000;
+			}
+		} else {
+			appearanceState3 = null;
+		}
+
+		return switch (applications) {
+			case 0b1111 -> prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 8);
+			case 0b0111 -> prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 5);
+			case 0b1011 -> prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 6);
+			case 0b1101 -> prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 13);
+			case 0b1110 -> prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 12);
+			//
+			case 0b0101 -> prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 9, 7);
+			case 0b1010 -> prepareEmitter(getEmitter(dataProvider), lightFace, blockView, pos, 1, 15);
+			//
+			case 0b0011 -> fromTwoSidesAdj(getEmitter(dataProvider), appearanceState2, appearanceState3, directions[2], directions[3], 4, 14, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			case 0b0110 -> fromTwoSidesAdj(getEmitter(dataProvider), appearanceState3, appearanceState0, directions[3], directions[0], 3, 16, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			case 0b1100 -> fromTwoSidesAdj(getEmitter(dataProvider), appearanceState0, appearanceState1, directions[0], directions[1], 10, 2, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			case 0b1001 -> fromTwoSidesAdj(getEmitter(dataProvider), appearanceState1, appearanceState2, directions[1], directions[2], 11, 0, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			//
+			case 0b0001 -> fromOneSide(getEmitter(dataProvider), appearanceState1, appearanceState2, appearanceState3, directions[1], directions[2], directions[3], 9, 0, 14, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			case 0b0010 -> fromOneSide(getEmitter(dataProvider), appearanceState2, appearanceState3, appearanceState0, directions[2], directions[3], directions[0], 1, 14, 16, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			case 0b0100 -> fromOneSide(getEmitter(dataProvider), appearanceState3, appearanceState0, appearanceState1, directions[3], directions[0], directions[1], 7, 16, 2, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			case 0b1000 -> fromOneSide(getEmitter(dataProvider), appearanceState0, appearanceState1, appearanceState2, directions[0], directions[1], directions[2], 15, 2, 0, mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+			//
+			case 0b0000 -> {
+				boolean s0 = hasSameOverlay(appearanceState0, lightFace);
+				boolean s1 = hasSameOverlay(appearanceState1, lightFace);
+				boolean s2 = hasSameOverlay(appearanceState2, lightFace);
+				boolean s3 = hasSameOverlay(appearanceState3, lightFace);
+
+				boolean c01 = (s0 | s1) && appliesOverlayCorner(directions[0], directions[1], mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+				boolean c12 = (s1 | s2) && appliesOverlayCorner(directions[1], directions[2], mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+				boolean c23 = (s2 | s3) && appliesOverlayCorner(directions[2], directions[3], mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+				boolean c30 = (s3 | s0) && appliesOverlayCorner(directions[3], directions[0], mutablePos, blockView, appearanceState, state, pos, lightFace, quadSprite);
+
+				if (c01 | c12 | c23 | c30) {
+					OverlayEmitter emitter = getEmitter(dataProvider);
+					prepareEmitter(emitter, lightFace, blockView, pos);
+					if (c01) {
+						emitter.addSprite(sprites[2]);
+					}
+					if (c12) {
+						emitter.addSprite(sprites[0]);
+					}
+					if (c23) {
+						emitter.addSprite(sprites[14]);
+					}
+					if (c30) {
+						emitter.addSprite(sprites[16]);
+					}
+					yield emitter;
+				}
+
+				yield null;
+			}
+			//
+			default -> throw new IllegalStateException("Unexpected value: " + applications);
+		};
 	}
 
 	public static class OverlayEmitter implements Consumer<QuadEmitter> {
@@ -353,10 +349,9 @@ public class StandardOverlayQuadProcessor extends AbstractQuadProcessor {
 			this.material = material;
 		}
 
-		public void addSprite(Sprite sprite) {
-			if (sprite != null && !TextureUtil.isMissingSprite(sprite)) {
-				sprites[spriteAmount] = sprite;
-				spriteAmount++;
+		public void addSprite(@Nullable Sprite sprite) {
+			if (sprite != null) {
+				sprites[spriteAmount++] = sprite;
 			}
 		}
 	}

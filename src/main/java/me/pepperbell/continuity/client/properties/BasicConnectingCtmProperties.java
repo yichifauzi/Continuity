@@ -55,7 +55,7 @@ public class BasicConnectingCtmProperties extends BaseCtmProperties {
 
 	protected void validateConnect() {
 		if (connectionPredicate == null) {
-			ContinuityClient.LOGGER.error("No valid connection type provided in file '" + resourceId + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.error("No valid connection type provided in file '" + resourceId + "' in pack '" + packId + "'");
 			valid = false;
 		}
 	}
@@ -67,29 +67,29 @@ public class BasicConnectingCtmProperties extends BaseCtmProperties {
 	public enum ConnectionType implements ConnectionPredicate {
 		BLOCK {
 			@Override
-			public boolean shouldConnect(BlockRenderView blockView, BlockState state, BlockPos pos, BlockState toState, Direction face, Sprite quadSprite) {
-				return state.getBlock() == toState.getBlock();
+			public boolean shouldConnect(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, BlockState otherAppearanceState, BlockState otherState, BlockPos otherPos, Direction face, Sprite quadSprite) {
+				return appearanceState.getBlock() == otherAppearanceState.getBlock();
 			}
 		},
 		TILE {
 			@Override
-			public boolean shouldConnect(BlockRenderView blockView, BlockState state, BlockPos pos, BlockState toState, Direction face, Sprite quadSprite) {
-				if (state == toState) {
+			public boolean shouldConnect(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, BlockState otherAppearanceState, BlockState otherState, BlockPos otherPos, Direction face, Sprite quadSprite) {
+				if (appearanceState == otherAppearanceState) {
 					return true;
 				}
-				return quadSprite == SpriteCalculator.getSprite(toState, face);
+				return quadSprite == SpriteCalculator.getSprite(otherAppearanceState, face);
 			}
 		},
 		MATERIAL {
 			@Override
-			public boolean shouldConnect(BlockRenderView blockView, BlockState state, BlockPos pos, BlockState toState, Direction face, Sprite quadSprite) {
-				return state.getMaterial() == toState.getMaterial();
+			public boolean shouldConnect(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, BlockState otherAppearanceState, BlockState otherState, BlockPos otherPos, Direction face, Sprite quadSprite) {
+				return appearanceState.getMaterial() == otherAppearanceState.getMaterial();
 			}
 		},
 		STATE {
 			@Override
-			public boolean shouldConnect(BlockRenderView blockView, BlockState state, BlockPos pos, BlockState toState, Direction face, Sprite quadSprite) {
-				return state == toState;
+			public boolean shouldConnect(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, BlockState otherAppearanceState, BlockState otherState, BlockPos otherPos, Direction face, Sprite quadSprite) {
+				return appearanceState == otherAppearanceState;
 			}
 		};
 	}

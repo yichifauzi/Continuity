@@ -10,9 +10,9 @@ import net.minecraft.util.Identifier;
 public class RepeatOverlayCtmProperties extends RepeatCtmProperties implements OverlayPropertiesSection.Provider {
 	protected OverlayPropertiesSection overlaySection;
 
-	public RepeatOverlayCtmProperties(Properties properties, Identifier id, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
-		super(properties, id, pack, packPriority, resourceManager, method);
-		overlaySection = new OverlayPropertiesSection(properties, id, packName);
+	public RepeatOverlayCtmProperties(Properties properties, Identifier resourceId, ResourcePack pack, int packPriority, ResourceManager resourceManager, String method) {
+		super(properties, resourceId, pack, packPriority, resourceManager, method);
+		overlaySection = new OverlayPropertiesSection(properties, resourceId, packId);
 	}
 
 	@Override

@@ -15,18 +15,18 @@ import net.minecraft.util.InvalidIdentifierException;
 
 public class OverlayPropertiesSection {
 	protected Properties properties;
-	protected Identifier id;
-	protected String packName;
+	protected Identifier resourceId;
+	protected String packId;
 
 	protected int tintIndex = -1;
 	@Nullable
 	protected BlockState tintBlock;
 	protected BlendMode layer = BlendMode.CUTOUT_MIPPED;
 
-	public OverlayPropertiesSection(Properties properties, Identifier id, String packName) {
+	public OverlayPropertiesSection(Properties properties, Identifier resourceId, String packId) {
 		this.properties = properties;
-		this.id = id;
-		this.packName = packName;
+		this.resourceId = resourceId;
+		this.packId = packId;
 	}
 
 	public void init() {
@@ -50,7 +50,7 @@ public class OverlayPropertiesSection {
 		} catch (NumberFormatException e) {
 			//
 		}
-		ContinuityClient.LOGGER.warn("Invalid 'tintIndex' value '" + tintIndexStr + "' in file '" + id + "' in pack '" + packName + "'");
+		ContinuityClient.LOGGER.warn("Invalid 'tintIndex' value '" + tintIndexStr + "' in file '" + resourceId + "' in pack '" + packId + "'");
 	}
 
 	protected void parseTintBlock() {
@@ -69,7 +69,7 @@ public class OverlayPropertiesSection {
 					blockId = new Identifier(parts[0], parts[1]);
 				}
 			} catch (InvalidIdentifierException e) {
-				ContinuityClient.LOGGER.warn("Invalid 'tintBlock' value '" + tintBlockStr + "' in file '" + id + "' in pack '" + packName + "'", e);
+				ContinuityClient.LOGGER.warn("Invalid 'tintBlock' value '" + tintBlockStr + "' in file '" + resourceId + "' in pack '" + packId + "'", e);
 				return;
 			}
 
@@ -77,10 +77,10 @@ public class OverlayPropertiesSection {
 				Block block = Registries.BLOCK.get(blockId);
 				tintBlock = block.getDefaultState();
 			} else {
-				ContinuityClient.LOGGER.warn("Unknown block '" + blockId + "' in 'tintBlock' value '" + tintBlockStr + "' in file '" + id + "' in pack '" + packName + "'");
+				ContinuityClient.LOGGER.warn("Unknown block '" + blockId + "' in 'tintBlock' value '" + tintBlockStr + "' in file '" + resourceId + "' in pack '" + packId + "'");
 			}
 		} else {
-			ContinuityClient.LOGGER.warn("Invalid 'tintBlock' value '" + tintBlockStr + "' in file '" + id + "' in pack '" + packName + "'");
+			ContinuityClient.LOGGER.warn("Invalid 'tintBlock' value '" + tintBlockStr + "' in file '" + resourceId + "' in pack '" + packId + "'");
 		}
 	}
 
@@ -95,7 +95,7 @@ public class OverlayPropertiesSection {
 			case "cutout_mipped" -> layer = BlendMode.CUTOUT_MIPPED;
 			case "cutout" -> layer = BlendMode.CUTOUT;
 			case "translucent" -> layer = BlendMode.TRANSLUCENT;
-			default -> ContinuityClient.LOGGER.warn("Unknown 'layer' value '" + layerStr + " in file '" + id + "' in pack '" + packName + "'");
+			default -> ContinuityClient.LOGGER.warn("Unknown 'layer' value '" + layerStr + " in file '" + resourceId + "' in pack '" + packId + "'");
 		}
 	}
 
