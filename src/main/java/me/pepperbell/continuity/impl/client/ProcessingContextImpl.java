@@ -3,6 +3,8 @@ package me.pepperbell.continuity.impl.client;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.jetbrains.annotations.Nullable;
+
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import me.pepperbell.continuity.api.client.ProcessingDataKey;
 import me.pepperbell.continuity.api.client.ProcessingDataKeyRegistry;
@@ -53,6 +55,7 @@ public class ProcessingContextImpl implements QuadProcessor.ProcessingContext {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Nullable
 	public <T> T getDataOrNull(ProcessingDataKey<T> key) {
 		return (T) processingData[key.getRawId()];
 	}

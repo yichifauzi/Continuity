@@ -7,17 +7,19 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.BlockRenderView;
 
 public interface ConnectionPredicate {
-	boolean shouldConnect(BlockRenderView blockView, BlockState state, BlockPos pos, BlockState toState, Direction face, Sprite quadSprite);
+	boolean shouldConnect(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, BlockState otherAppearanceState, BlockState otherState, BlockPos otherPos, Direction face, Sprite quadSprite);
 
-	default boolean shouldConnect(BlockRenderView blockView, BlockState state, BlockPos pos, BlockPos toPos, Direction face, Sprite quadSprite) {
-		return shouldConnect(blockView, state, pos, blockView.getBlockState(toPos), face, quadSprite);
+	default boolean shouldConnect(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, BlockPos otherPos, Direction face, Sprite quadSprite) {
+		BlockState otherState = blockView.getBlockState(otherPos);
+		BlockState otherAppearanceState = otherState.getAppearance(blockView, otherPos, face, state, pos);
+		return shouldConnect(blockView, appearanceState, state, pos, otherAppearanceState, otherState, otherPos, face, quadSprite);
 	}
 
-	default boolean shouldConnect(BlockRenderView blockView, BlockState state, BlockPos pos, BlockPos.Mutable toPos, Direction face, Sprite quadSprite, boolean innerSeams) {
-		if (shouldConnect(blockView, state, pos, toPos, face, quadSprite)) {
+	default boolean shouldConnect(BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, BlockPos.Mutable otherPos, Direction face, Sprite quadSprite, boolean innerSeams) {
+		if (shouldConnect(blockView, appearanceState, state, pos, otherPos, face, quadSprite)) {
 			if (innerSeams) {
-				toPos.move(face);
-				return !shouldConnect(blockView, state, pos, toPos, face, quadSprite);
+				otherPos.move(face);
+				return !shouldConnect(blockView, appearanceState, state, pos, otherPos, face, quadSprite);
 			} else {
 				return true;
 			}

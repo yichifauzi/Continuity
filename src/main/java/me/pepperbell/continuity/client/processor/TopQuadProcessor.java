@@ -25,18 +25,18 @@ public class TopQuadProcessor extends AbstractQuadProcessor {
 	}
 
 	@Override
-	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
+	public ProcessingResult processQuadInner(MutableQuadView quad, Sprite sprite, BlockRenderView blockView, BlockState appearanceState, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, int pass, ProcessingContext context) {
 		Direction lightFace = quad.lightFace();
 		Direction.Axis axis;
-		if (state.contains(Properties.AXIS)) {
-			axis = state.get(Properties.AXIS);
+		if (appearanceState.contains(Properties.AXIS)) {
+			axis = appearanceState.get(Properties.AXIS);
 		} else {
 			axis = Direction.Axis.Y;
 		}
 		if (lightFace.getAxis() != axis) {
 			Direction up = Direction.from(axis, Direction.AxisDirection.POSITIVE);
-			BlockPos.Mutable mutablePos = context.getData(ProcessingDataKeys.MUTABLE_POS_KEY).set(pos, up);
-			if (connectionPredicate.shouldConnect(blockView, state, pos, mutablePos, lightFace, sprite, innerSeams)) {
+			BlockPos.Mutable mutablePos = context.getData(ProcessingDataKeys.MUTABLE_POS).set(pos, up);
+			if (connectionPredicate.shouldConnect(blockView, appearanceState, state, pos, mutablePos, lightFace, sprite, innerSeams)) {
 				return SimpleQuadProcessor.process(quad, sprite, sprites[0]);
 			}
 		}
